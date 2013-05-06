@@ -17,6 +17,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <setjmp.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <jpeglib.h>
 #include "dbgutil.h"
 
@@ -88,6 +90,8 @@ static struct jpeg_error_mgr *my_error_mgr(struct my_jpeg_error *err)
 
 int load_jpeg(struct quirc *q, const char *filename)
 {
+    IplImage *img = cvLoadImage(filename,CV_LOAD_IMAGE_COLOR);
+    cvShowImage("prova",img);
 	FILE *infile = fopen(filename, "rb");
 	struct jpeg_decompress_struct dinfo;
 	struct my_jpeg_error err;

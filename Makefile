@@ -1,5 +1,5 @@
 # quirc -- QR-code recognition library
-# Copyright (C) 2010-2012 Daniel Beer <dlbeer@gmail.com>
+# Copyright (C) 2010-2012 Daniel Beer <dlbeer@gmail.cppom>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -13,7 +13,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-CC ?= gcc
 PREFIX ?= /usr/local
 SDL_CFLAGS := $(shell pkg-config --cflags sdl)
 SDL_LIBS := $(shell pkg-config --libs sdl)
@@ -28,26 +27,14 @@ LIB_OBJ = \
     lib/quirc.o \
     lib/version_db.o
 LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
-DEMO_OBJ = \
-    demo/camera.o \
-    demo/mjpeg.o \
-    demo/convert.o \
-    demo/dthash.o \
-    demo/demoutil.o
 
-all: libquirc.so qrtest inspect quirc-demo quirc-scanner
+all: libquirc.so qrtest inspect
 
 qrtest: tests/dbgutil.o tests/qrtest.o libquirc.a
-	$(CC) -o $@ $^ -lm -ljpeg
+	g++ -o $@ $^ -lm -ljpeg `pkg-config --cflags --libs opencv`
 
 inspect: tests/dbgutil.o tests/inspect.o libquirc.a
-	$(CC) -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx
-
-quirc-demo: $(DEMO_OBJ) demo/demo.o libquirc.a
-	$(CC) -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx
-
-quirc-scanner: $(DEMO_OBJ) demo/scanner.o libquirc.a
-	$(CC) -o $@ $^ -lm -ljpeg
+	g++ -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx `pkg-config --cflags --libs opencv`
 
 libquirc.a: $(LIB_OBJ)
 	rm -f $@
@@ -55,23 +42,21 @@ libquirc.a: $(LIB_OBJ)
 	ranlib $@
 
 libquirc.so: $(LIB_SOBJ)
-	$(CC) -shared -Wl,-soname=$(LIB_SONAME) -o $@ $^ -lm
+	cc -shared -Wl, -dynamiclib -install_name $(LIB_SONAME) -o $@ $^ -lm
 
-%.o: %.c
-	$(CC) $(QUIRC_CFLAGS) -o $*.o -c $*.c
+%.o: %.cpp
+	cc $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
 
-%.lo: %.c
-	$(CC) -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.c
+%.lo: %.cpp
+	cc -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
 
-install: libquirc.a libquirc.so quirc-demo quirc-scanner
+install: libquirc.a libquirc.so
 	install -o root -g root -m 0644 lib/quirc.h $(DESTDIR)$(PREFIX)/include
 	install -o root -g root -m 0644 libquirc.a $(DESTDIR)$(PREFIX)/lib
 	install -o root -g root -m 0755 libquirc.so \
 		$(DESTDIR)$(PREFIX)/lib/libquirc.so.$(LIB_VERSION)
 	ln -sf libquirc.so.$(LIB_VERSION) $(DESTDIR)$(PREFIX)/lib/$(LIB_SONAME)
 	ln -sf libquirc.so.$(LIB_VERSION) $(DESTDIR)$(PREFIX)/lib/libquirc.so
-	install -o root -g root -m 0755 quirc-demo $(DESTDIR)$(PREFIX)/bin
-	install -o root -g root -m 0755 quirc-scanner $(DESTDIR)$(PREFIX)/bin
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/include/quirc.h
@@ -79,8 +64,6 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/lib/$(LIB_SONAME)
 	rm -f $(DESTDIR)$(PREFIX)/lib/libquirc.so
 	rm -f $(DESTDIR)$(PREFIX)/lib/libquirc.a
-	rm -f $(DESTDIR)$(PREFIX)/bin/quirc-demo
-	rm -f $(DESTDIR)$(PREFIX)/bin/quirc-scanner
 
 clean:
 	rm -f */*.o
@@ -89,5 +72,3 @@ clean:
 	rm -f libquirc.so
 	rm -f qrtest
 	rm -f inspect
-	rm -f quirc-demo
-	rm -f quirc-scanner

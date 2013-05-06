@@ -18,6 +18,8 @@
 #include <string.h>
 #include <SDL.h>
 #include <SDL_gfxPrimitives.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include "quirc_internal.h"
 #include "dbgutil.h"
 
@@ -56,7 +58,7 @@ static void draw_frame(SDL_Surface *screen, struct quirc *q)
 	int x, y;
 
 	SDL_LockSurface(screen);
-	pix = screen->pixels;
+	pix = (uint8_t *)screen->pixels;
 	for (y = 0; y < q->h; y++) {
 		uint32_t *row = (uint32_t *)pix;
 

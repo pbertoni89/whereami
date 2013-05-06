@@ -25,7 +25,7 @@ const char *quirc_version(void)
 
 struct quirc *quirc_new(void)
 {
-	struct quirc *q = malloc(sizeof(*q));
+	struct quirc *q = (struct quirc *)malloc(sizeof(*q));
 
 	if (!q)
 		return NULL;
@@ -44,7 +44,7 @@ void quirc_destroy(struct quirc *q)
 
 int quirc_resize(struct quirc *q, int w, int h)
 {
-	uint8_t *new_image = realloc(q->image, w * h);
+	uint8_t *new_image = (uint8_t *)realloc(q->image, w * h);
 
 	if (!new_image)
 		return -1;
