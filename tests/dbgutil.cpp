@@ -91,6 +91,13 @@ static struct jpeg_error_mgr *my_error_mgr(struct my_jpeg_error *err)
 int load_jpeg(struct quirc *q, const char *filename)
 {
     IplImage *img = cvLoadImage(filename,CV_LOAD_IMAGE_GRAYSCALE);
+    cv_to_quirc(q, img);
+    cvReleaseImage(&img);
+    
+    return 0;
+}
+
+void cv_to_quirc(struct quirc *q, IplImage *img){
 	uint8_t *image;
 	quirc_resize(q, img->width, img->height);
 
@@ -102,8 +109,4 @@ int load_jpeg(struct quirc *q, const char *filename)
             row_pointer[x] = (uint8_t) img->imageData[(y*img->widthStep) + x*img->nChannels];
         }
 	}
-    
-    cvReleaseImage(&img);
-    
-    return 0;
 }

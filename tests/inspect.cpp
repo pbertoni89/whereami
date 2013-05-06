@@ -227,9 +227,36 @@ int main(int argc, char **argv)
 	printf("Library version: %s\n", quirc_version());
 	printf("\n");
 
-	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <testfile.jpg>\n", argv[0]);
-		return -1;
+	if (argc < 2) { // load video
+        CvCapture* capture = cvCaptureFromCAM(0);;
+        if (capture==NULL) {
+            printf("Errore durante il caricamento del capture.\n");
+            return 1;
+        }
+        
+        for(;;)
+        {
+            cvGrabFrame(capture);
+
+            IplImage* frame = cvQueryFrame( capture );
+            
+            IplImage* frame_BW = cvCreateImage(cvSize(frame->width, frame->height),IPL_DEPTH_8U,1);
+            cvCvtColor(frame,frame_BW,CV_BGR2GRAY);
+            if (frame==NULL) {
+                printf("Errore durante il caricamento del frame.\n");
+                break;
+            }
+            
+            q = quirc_new();
+            //cvShowImage("frame",frame);
+            cv_to_quirc(q, frame_BW);
+            quirc_end(q);
+            dump_info(q);
+            sdl_examine(q);
+            quirc_destroy(q);
+        }
+        
+		return 0;
 	}
 
 	q = quirc_new();

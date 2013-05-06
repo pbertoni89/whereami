@@ -32,4 +32,7 @@ void dump_cells(const struct quirc_code *code);
  */
 int load_jpeg(struct quirc *q, const char *filename);
 
+
+void cv_to_quirc(struct quirc *q, IplImage *img);
+
 #endif
