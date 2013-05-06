@@ -20,7 +20,7 @@ SDL_LIBS := $(shell pkg-config --libs sdl)
 LIB_VERSION = 1.0
 LIB_SONAME = libquirc.so.1
 
-QUIRC_CFLAGS = -O3 -Wall -Ilib $(CFLAGS) $(SDL_CFLAGS)
+QUIRC_CFLAGS = -g -Wall -Ilib $(CFLAGS) $(SDL_CFLAGS)
 LIB_OBJ = \
     lib/decode.o \
     lib/identify.o \

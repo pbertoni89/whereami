@@ -90,57 +90,20 @@ static struct jpeg_error_mgr *my_error_mgr(struct my_jpeg_error *err)
 
 int load_jpeg(struct quirc *q, const char *filename)
 {
-    IplImage *img = cvLoadImage(filename,CV_LOAD_IMAGE_COLOR);
-    cvShowImage("prova",img);
-	FILE *infile = fopen(filename, "rb");
-	struct jpeg_decompress_struct dinfo;
-	struct my_jpeg_error err;
+    IplImage *img = cvLoadImage(filename,CV_LOAD_IMAGE_GRAYSCALE);
 	uint8_t *image;
-	int y;
-
-	if (!infile) {
-		perror("can't open input file");
-		return -1;
-	}
-
-	memset(&dinfo, 0, sizeof(dinfo));
-	dinfo.err = my_error_mgr(&err);
-
-	if (setjmp(err.env))
-		goto fail;
-
-	jpeg_create_decompress(&dinfo);
-	jpeg_stdio_src(&dinfo, infile);
-
-	jpeg_read_header(&dinfo, TRUE);
-	dinfo.output_components = 1;
-	dinfo.out_color_space = JCS_GRAYSCALE;
-	jpeg_start_decompress(&dinfo);
-
-	if (dinfo.output_components != 1) {
-		fprintf(stderr, "Unexpected number of output components: %d",
-			 dinfo.output_components);
-		goto fail;
-	}
-
-	if (quirc_resize(q, dinfo.output_width, dinfo.output_height) < 0)
-		goto fail;
+	quirc_resize(q, img->width, img->height);
 
 	image = quirc_begin(q, NULL, NULL);
-
-	for (y = 0; y < dinfo.output_height; y++) {
-		JSAMPROW row_pointer = image + y * dinfo.output_width;
-
-		jpeg_read_scanlines(&dinfo, &row_pointer, 1);
+    
+	for (int y = 0; y < img->height; y++) {
+		uint8_t *row_pointer = image + y * img->widthStep;
+        for(int x = 0; x < img->width; x++){
+            row_pointer[x] = (uint8_t) img->imageData[(y*img->widthStep) + x*img->nChannels];
+        }
 	}
-
-	fclose(infile);
-	jpeg_finish_decompress(&dinfo);
-	jpeg_destroy_decompress(&dinfo);
-	return 0;
-
-fail:
-	fclose(infile);
-	jpeg_destroy_decompress(&dinfo);
-	return -1;
+    
+    cvReleaseImage(&img);
+    
+    return 0;
 }
