@@ -16,10 +16,8 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <setjmp.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <jpeglib.h>
 #include "dbgutil.h"
 
 void dump_data(const struct quirc_data *data)
@@ -56,41 +54,11 @@ void dump_cells(const struct quirc_code *code)
 	}
 }
 
-struct my_jpeg_error {
-	struct jpeg_error_mgr   base;
-	jmp_buf                 env;
-};
-
-static void my_output_message(struct jpeg_common_struct *com)
-{
-	struct my_jpeg_error *err = (struct my_jpeg_error *)com->err;
-	char buf[JMSG_LENGTH_MAX];
-
-	err->base.format_message(com, buf);
-	fprintf(stderr, "JPEG error: %s", buf);
-}
-
-static void my_error_exit(struct jpeg_common_struct *com)
-{
-	struct my_jpeg_error *err = (struct my_jpeg_error *)com->err;
-
-	my_output_message(com);
-	longjmp(err->env, 0);
-}
-
-static struct jpeg_error_mgr *my_error_mgr(struct my_jpeg_error *err)
-{
-	jpeg_std_error(&err->base);
-
-	err->base.error_exit = my_error_exit;
-	err->base.output_message = my_output_message;
-
-	return &err->base;
-}
-
-int load_jpeg(struct quirc *q, const char *filename)
+int load_image(struct quirc *q, const char *filename)
 {
     IplImage *img = cvLoadImage(filename,CV_LOAD_IMAGE_GRAYSCALE);
+    printf("%d\n",img->nChannels);
+    cvShowImage("OpenCV image",img);
     cv_to_quirc(q, img);
     cvReleaseImage(&img);
     
@@ -106,7 +74,7 @@ void cv_to_quirc(struct quirc *q, IplImage *img){
 	for (int y = 0; y < img->height; y++) {
 		uint8_t *row_pointer = image + y * img->widthStep;
         for(int x = 0; x < img->width; x++){
-            row_pointer[x] = (uint8_t) img->imageData[(y*img->widthStep) + x*img->nChannels];
+            row_pointer[x] = (uint8_t) img->imageData[(y*img->widthStep) + x];
         }
 	}
 }

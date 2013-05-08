@@ -23,8 +23,6 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <quirc.h>
-#include <jpeglib.h>
-#include <setjmp.h>
 #include <time.h>
 #include "dbgutil.h"
 
@@ -96,11 +94,11 @@ static int scan_file(const char *path, const char *filename,
 		return 0;
 
 	total_start = start = clock();
-	ret = load_jpeg(decoder, path);
+	ret = load_image(decoder, path);
 	info->load_time = clock() - start;
 
 	if (ret < 0) {
-		fprintf(stderr, "%s: load_jpeg failed\n", filename);
+		fprintf(stderr, "%s: load_image failed\n", filename);
 		return -1;
 	}
 

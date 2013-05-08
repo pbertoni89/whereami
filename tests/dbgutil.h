@@ -17,6 +17,8 @@
 #ifndef DBGUTIL_H_
 #define DBGUTIL_H_
 
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include "quirc.h"
 
 /* Dump decoded information on stdout. */
@@ -25,12 +27,12 @@ void dump_data(const struct quirc_data *data);
 /* Dump a grid cell map on stdout. */
 void dump_cells(const struct quirc_code *code);
 
-/* Read a JPEG image into the decoder.
+/* Read an image into the decoder.
  *
  * Note that you must call quirc_end() if the function returns
  * successfully (0).
  */
-int load_jpeg(struct quirc *q, const char *filename);
+int load_image(struct quirc *q, const char *filename);
 
 
 void cv_to_quirc(struct quirc *q, IplImage *img);

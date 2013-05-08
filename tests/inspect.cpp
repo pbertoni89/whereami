@@ -218,6 +218,16 @@ static int sdl_examine(struct quirc *q)
 	return 0;
 }
 
+int elaboraQR(struct quirc *q){
+	quirc_end(q);
+	dump_info(q);
+
+	if (sdl_examine(q) < 0) {
+		return -1;
+	}
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
 	struct quirc *q;
@@ -226,6 +236,12 @@ int main(int argc, char **argv)
 	printf("Copyright (C) 2010-2012 Daniel Beer <dlbeer@gmail.com>\n");
 	printf("Library version: %s\n", quirc_version());
 	printf("\n");
+    
+	q = quirc_new();
+	if (!q) {
+		perror("can't create quirc object");
+		return -1;
+	}
 
 	if (argc < 2) { // load video
         CvCapture* capture = cvCaptureFromCAM(0);;
@@ -237,47 +253,30 @@ int main(int argc, char **argv)
         for(;;)
         {
             cvGrabFrame(capture);
-
             IplImage* frame = cvQueryFrame( capture );
-            
             IplImage* frame_BW = cvCreateImage(cvSize(frame->width, frame->height),IPL_DEPTH_8U,1);
             cvCvtColor(frame,frame_BW,CV_BGR2GRAY);
             if (frame==NULL) {
                 printf("Errore durante il caricamento del frame.\n");
-                break;
+                return -1;
             }
-            
-            q = quirc_new();
-            //cvShowImage("frame",frame);
             cv_to_quirc(q, frame_BW);
-            quirc_end(q);
-            dump_info(q);
-            sdl_examine(q);
-            quirc_destroy(q);
+            elaboraQR(q);
         }
         
+        quirc_destroy(q);
 		return 0;
 	}
-
-	q = quirc_new();
-	if (!q) {
-		perror("can't create quirc object");
-		return -1;
-	}
-
-	if (load_jpeg(q, argv[1]) < 0) {
+    
+	if (load_image(q, argv[1]) < 0) {
 		quirc_destroy(q);
 		return -1;
 	}
 
-	quirc_end(q);
-	dump_info(q);
+    if(elaboraQR(q) < 0){
+        quirc_destroy(q);
+        return -1;
+    }
 
-	if (sdl_examine(q) < 0) {
-		quirc_destroy(q);
-		return -1;
-	}
-
-	quirc_destroy(q);
 	return 0;
 }
