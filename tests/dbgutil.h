@@ -17,8 +17,8 @@
 #ifndef DBGUTIL_H_
 #define DBGUTIL_H_
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 #include "quirc.h"
 
 /* Dump decoded information on stdout. */

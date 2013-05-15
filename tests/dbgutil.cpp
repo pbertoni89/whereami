@@ -16,8 +16,8 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 #include "dbgutil.h"
 
 void dump_data(const struct quirc_data *data)
