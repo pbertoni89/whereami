@@ -218,14 +218,108 @@ static int sdl_examine(struct quirc *q)
 	return 0;
 }
 
-int elaboraQR(struct quirc *q){
-	quirc_end(q);
-	dump_info(q);
+void drawBoundingBox(IplImage* img, const struct quirc_code *code){
+  int x0 = code->corners[0].x;
+  int y0 = code->corners[0].y;
+  int x1 = code->corners[1].x;
+  int y1 = code->corners[1].y;
+  int x2 = code->corners[2].x;
+  int y2 = code->corners[2].y;
+  int x3 = code->corners[3].x;
+  int y3 = code->corners[3].y;
+  
+  int npts = 4;
+  CvPoint *points;
+  points = (CvPoint*) malloc(sizeof(CvPoint)*4);
+  for(int i = 0; i< 4; i++){
+    points[i] = cvPoint(code->corners[i].x,code->corners[i].y);
+  }
+  
+  // draw center
+  int xC, yC;
+  xC = (x0+x2)/2;
+  yC = (y0+y2)/2;
+  cvCircle( img, cvPoint(xC,yC), 3, cvScalar(127,127,127), -1, 8,0);
+  
+  // compute and print rotation
+  int deltaX = x1-x0;
+  int deltaY = y1-y0;
+  double angle = atan2(deltaY,deltaX)*180./CV_PI;
+  printf("Rotation: %f\n",angle);
+  
+  angle += 180;
+  
+  //cvFillPoly(img, &points, &npts, 1, cvScalar(127,127,127), 8, 0);
+  int lato1 = sqrt(pow(x0-x1,2)+pow(y0-y1,2));
+  int lato2 = sqrt(pow(x1-x2,2)+pow(y1-y2,2));
+  int lato3 = sqrt(pow(x2-x3,2)+pow(y2-y3,2));
+  int lato4 = sqrt(pow(x3-x0,2)+pow(y3-y0,2));
+  
+  if(angle < 45 || angle > 360-45){
+    if(lato1>lato3){
+      printf("Rivolto verso l'alto.\n");
+    } else{
+      printf("Rivolto verso il basso\n");
+    }
+  } else if(angle >= 45 && angle < 45+90){
+    printf("BBBBBBBBBBBBBBBB");
+  } else if (angle >= 45+90 && angle < 45+180){
+    if(lato3>lato1){
+      printf("Rivolto verso l'alto.\n");
+    } else{
+      printf("Rivolto verso il basso\n");
+    }
+    if(lato4>lato2){
+      printf("Rivolto verso sinistra.\n");
+    } else{
+      printf("Rivolto verso destra.\n");
+    }
+  } else{
+    printf("DDDDDDDDDDDDDDDD");
+  }
+}
 
-	if (sdl_examine(q) < 0) {
-		return -1;
+int elaboraQR(IplImage* frame_BW, struct quirc *q){
+	
+	quirc_end(q);
+  
+	//dump_info(q);
+  
+	int count = quirc_count(q);
+	int i;
+
+	printf("%d QR-codes found:\n\n", count);
+	for (i = 0; i < count; i++) {
+		struct quirc_code code;
+		struct quirc_data data;
+		quirc_decode_error_t err;
+
+		quirc_extract(q, i, &code);
+		err = quirc_decode(&code, &data);
+    
+		//dump_cells(&code);
+		//printf("\n");
+    
+    drawBoundingBox(frame_BW, &code);
+    
+		if (err) {
+			printf("  Decoding FAILED: %s\n", quirc_strerror(err));
+		} else {
+			printf("  Decoding successful:\n");
+			dump_data(&data);
+		}
+
+		printf("\n");
 	}
-    return 0;
+  
+	
+  cvShowImage("Frame",frame_BW);
+  
+  //cvWaitKey();
+	//if (sdl_examine(q) < 0) {
+	//	return -1;
+	//}
+  return 0;
 }
 
 int main(int argc, char **argv)
@@ -261,22 +355,22 @@ int main(int argc, char **argv)
                 return -1;
             }
             cv_to_quirc(q, frame_BW);
-            elaboraQR(q);
+            elaboraQR(frame_BW,q);
         }
-        
         quirc_destroy(q);
 		return 0;
 	}
-    
-	if (load_image(q, argv[1]) < 0) {
-		quirc_destroy(q);
-		return -1;
-	}
 
-    if(elaboraQR(q) < 0){
-        quirc_destroy(q);
-        return -1;
-    }
-
+  IplImage *img = cvLoadImage(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
+  if(img == NULL){
+    quirc_destroy(q);
+    return -1;
+  }
+  if(elaboraQR(img,q) < 0){
+    quirc_destroy(q);
+    cvReleaseImage(&img);
+    return -1;
+  }
+  
 	return 0;
 }
