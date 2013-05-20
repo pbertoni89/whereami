@@ -28,10 +28,7 @@ LIB_OBJ = \
     lib/version_db.o
 LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
 
-all: libquirc.so qrtest inspect
-
-qrtest: tests/dbgutil.o tests/qrtest.o libquirc.a
-	g++ -o $@ $^ -lm -ljpeg `pkg-config --cflags --libs opencv`
+all: libquirc.so inspect
 
 inspect: tests/dbgutil.o tests/inspect.o libquirc.a
 	g++ -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx `pkg-config --cflags --libs opencv`
@@ -70,5 +67,4 @@ clean:
 	rm -f */*.lo
 	rm -f libquirc.a
 	rm -f libquirc.so
-	rm -f qrtest
 	rm -f inspect
