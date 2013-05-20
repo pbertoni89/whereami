@@ -256,24 +256,36 @@ void drawBoundingBox(IplImage* img, const struct quirc_code *code){
   int lato4 = sqrt(pow(x3-x0,2)+pow(y3-y0,2));
   
   if(angle < 45 || angle > 360-45){
-    if(lato1>lato3){
-      printf("Rivolto verso l'alto.\n");
-    } else{
-      printf("Rivolto verso il basso\n");
-    }
+    printf("AAAAAAAAAAAAAAAA");
   } else if(angle >= 45 && angle < 45+90){
     printf("BBBBBBBBBBBBBBBB");
   } else if (angle >= 45+90 && angle < 45+180){
-    if(lato3>lato1){
+    /*if(lato3>lato1){
       printf("Rivolto verso l'alto.\n");
     } else{
       printf("Rivolto verso il basso\n");
-    }
-    if(lato4>lato2){
+    }*/
+    const int threshold = 10; // progressiva in base a quanti vicino/lontano è il QR, se vicino deve crescere.
+    int latoDiff = lato4-lato2;
+    latoDiff = abs(latoDiff) < threshold ? 0 : latoDiff;
+    printf("%d\n",latoDiff);
+    int pixelQR;
+    if(latoDiff > 0){
+      pixelQR = lato4;
+      printf("Rivolto verso destra.\n");
+    } else if(latoDiff < 0){
+      pixelQR = lato2;
       printf("Rivolto verso sinistra.\n");
     } else{
-      printf("Rivolto verso destra.\n");
+      pixelQR = lato4;
+      printf("Rivolto frontalmente\n");
     }
+    double fattore = 594; // distanza_nota * pixel_rilevati / dimensione_nota
+    double dimMMQR = 50; // 50 su iPhone, 260 su schermo intero da 19"
+    double distanza_lato4 = fattore*dimMMQR/(lato4*10);
+    double distanza_lato2 = fattore*dimMMQR/(lato2*10);
+    // distanza_qr = fattore * dimensione_nota / pixel_rilevati
+    printf("Distanza dalla fotocamera (%d px): %lf cm\n",pixelQR,(distanza_lato2+distanza_lato4)/2);
   } else{
     printf("DDDDDDDDDDDDDDDD");
   }
@@ -315,7 +327,7 @@ int elaboraQR(IplImage* frame_BW, struct quirc *q){
 	
   cvShowImage("Frame",frame_BW);
   
-  //cvWaitKey();
+  cvWaitKey();
 	//if (sdl_examine(q) < 0) {
 	//	return -1;
 	//}
