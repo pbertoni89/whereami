@@ -28,10 +28,13 @@ LIB_OBJ = \
     lib/version_db.o
 LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
 
-all: libquirc.so inspect
+all: libquirc.so inspect calibration
 
 inspect: tests/dbgutil.o tests/inspect.o libquirc.a
 	g++ -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx `pkg-config --cflags --libs opencv`
+
+calibration: calibration.o
+	g++ -o $@ $^ `pkg-config --cflags --libs opencv`
 
 libquirc.a: $(LIB_OBJ)
 	rm -f $@
@@ -64,7 +67,9 @@ uninstall:
 
 clean:
 	rm -f */*.o
+	rm -f *.o
 	rm -f */*.lo
 	rm -f libquirc.a
 	rm -f libquirc.so
 	rm -f inspect
+	rm -f calibration
