@@ -26,6 +26,18 @@
 
 using namespace cv;
 
+int loadCameraParams(char* filename, Mat& intrinsic_matrix, Mat& distortion_coeffs){
+    CvFileStorage* fs = cvOpenFileStorage( filename, 0, CV_STORAGE_READ );
+    if (fs==NULL) return 1;
+
+    intrinsic_matrix = (CvMat*)cvReadByName( fs,0,"camera_matrix");
+    distortion_coeffs = (CvMat*)cvReadByName( fs,0,"distortion_coefficients");
+
+    return 0;
+}
+
+
+
 static void dump_info(struct quirc *q)
 {
 	int count = quirc_count(q);
@@ -331,9 +343,10 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
   imshow("Frame",frame_BW);
   
   cvWaitKey();
+  
 	//if (sdl_examine(q) < 0) {
-	//	return -1;
-	//}
+  //	return -1;
+  //}
   return 0;
 }
 
@@ -352,22 +365,26 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if (argc < 2) { // load video
+	if (argc < 3) { // load video
         VideoCapture capture;
         capture.open(0);
+        Mat intrinsic_matrix, distortion_coeffs;
+        loadCameraParams(argv[1],intrinsic_matrix, distortion_coeffs);
         if (!capture.isOpened()) {
             printf("Errore durante il caricamento del capture.\n");
             return 1;
         }
-        Mat frame, frame_BW;
+        Mat frame, frame_undistort, frame_BW;
         for(;;)
         {
             capture >> frame;
+            
             if (!frame.data) {
                 printf("Errore durante il caricamento del frame.\n");
                 return -1;
             }
-            cvtColor(frame, frame_BW, CV_BGR2GRAY);
+            undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
+            cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
             cv_to_quirc(q, frame_BW);
             elaboraQR(frame_BW,q);
         }
@@ -381,6 +398,7 @@ int main(int argc, char **argv)
     quirc_destroy(q);
     return -1;
   }
+  cv_to_quirc(q, img);
   if(elaboraQR(img,q) < 0){
     quirc_destroy(q);
     return -1;
