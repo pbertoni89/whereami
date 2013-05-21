@@ -40,6 +40,7 @@ int loadCameraParams(char* filename, Mat& intrinsic_matrix, Mat& distortion_coef
 
 static void dump_info(struct quirc *q)
 {
+  return;
 	int count = quirc_count(q);
 	int i;
 
@@ -260,15 +261,15 @@ void drawBoundingBox(Mat& img, const struct quirc_code *code){
   int deltaX = x1-x0;
   int deltaY = y1-y0;
   double angle = atan2(deltaY,deltaX)*180./CV_PI;
-  printf("Rotation: %f\n",angle);
+  printf("Inclinazione rispetto all'asse verticale: %f\n",angle);
   
   angle += 180;
   
   //cvFillPoly(img, &points, &npts, 1, cvScalar(127,127,127), 8, 0);
-  int lato1 = sqrt(pow((double)x0-x1,2)+pow((double)y0-y1,2));
-  int lato2 = sqrt(pow((double)x1-x2,2)+pow((double)y1-y2,2));
-  int lato3 = sqrt(pow((double)x2-x3,2)+pow((double)y2-y3,2));
-  int lato4 = sqrt(pow((double)x3-x0,2)+pow((double)y3-y0,2));
+  double lato1 = sqrt(pow((double)x0-x1,2)+pow((double)y0-y1,2));
+  double lato2 = sqrt(pow((double)x1-x2,2)+pow((double)y1-y2,2));
+  double lato3 = sqrt(pow((double)x2-x3,2)+pow((double)y2-y3,2));
+  double lato4 = sqrt(pow((double)x3-x0,2)+pow((double)y3-y0,2));
   
   if(angle < 45 || angle > 360-45){
     printf("AAAAAAAAAAAAAAAA");
@@ -280,27 +281,27 @@ void drawBoundingBox(Mat& img, const struct quirc_code *code){
     } else{
       printf("Rivolto verso il basso\n");
     }*/
-    const int threshold = 10; // progressiva in base a quanti vicino/lontano è il QR, se vicino deve crescere.
-    int latoDiff = lato4-lato2;
-    latoDiff = abs(latoDiff) < threshold ? 0 : latoDiff;
-    printf("%d\n",latoDiff);
-    int pixelQR;
-    if(latoDiff > 0){
-      pixelQR = lato4;
-      printf("Rivolto verso destra.\n");
-    } else if(latoDiff < 0){
-      pixelQR = lato2;
-      printf("Rivolto verso sinistra.\n");
-    } else{
-      pixelQR = lato4;
-      printf("Rivolto frontalmente\n");
-    }
     double fattore = 594; // distanza_nota * pixel_rilevati / dimensione_nota
     double dimMMQR = 50; // 50 su iPhone, 260 su schermo intero da 19"
-    double distanza_lato4 = fattore*dimMMQR/(lato4*10);
-    double distanza_lato2 = fattore*dimMMQR/(lato2*10);
+    double distanza_lato4 = fattore*dimMMQR/(lato4);
+    double distanza_lato2 = fattore*dimMMQR/(lato2);
+
+    int pixelQR = (lato2 + lato4)/2;
+
+    const int threshold = pixelQR/13; // progressiva in base a quanti vicino/lontano è il QR, se vicino deve crescere.
+    int latoDiff = lato4-lato2;
+    latoDiff = abs(latoDiff) < threshold ? 0 : latoDiff;
+    double angleProsp = asin((distanza_lato2-distanza_lato4)/dimMMQR)*180./CV_PI;
+    
+    if(latoDiff > 0){
+      printf("Rivolto verso destra (%lf).\n",angleProsp);
+    } else if(latoDiff < 0){
+      printf("Rivolto verso sinistra (%lf).\n",angleProsp);
+    } else{
+      printf("Rivolto frontalmente\n");
+    }
     // distanza_qr = fattore * dimensione_nota / pixel_rilevati
-    printf("Distanza dalla fotocamera (%d px): %lf cm\n",pixelQR,(distanza_lato2+distanza_lato4)/2);
+    printf("Distanza dalla fotocamera (%d px): %lf cm\n",pixelQR,(distanza_lato2+distanza_lato4)/(2 * 10));
   } else{
     printf("DDDDDDDDDDDDDDDD");
   }
@@ -315,7 +316,7 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 	int count = quirc_count(q);
 	int i;
 
-	printf("%d QR-codes found:\n\n", count);
+	//printf("%d QR-codes found:\n\n", count);
 	for (i = 0; i < count; i++) {
 		struct quirc_code code;
 		struct quirc_data data;
@@ -327,22 +328,22 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 		//dump_cells(&code);
 		//printf("\n");
     
-    drawBoundingBox(frame_BW, &code);
     
 		if (err) {
-			printf("  Decoding FAILED: %s\n", quirc_strerror(err));
+			;//printf("  Decoding FAILED: %s\n", quirc_strerror(err));
 		} else {
-			printf("  Decoding successful:\n");
-			dump_data(&data);
+      drawBoundingBox(frame_BW, &code);
+			//printf("  Decoding successful:\n");
+		  // dump_data(&data);
 		}
 
-		printf("\n");
+		//printf("\n");
+    
 	}
-  
-	
+
   imshow("Frame",frame_BW);
   
-  cvWaitKey();
+  //cvWaitKey();
   
 	//if (sdl_examine(q) < 0) {
   //	return -1;
