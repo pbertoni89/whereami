@@ -20,6 +20,8 @@
 #include <opencv/highgui.h>
 #include "dbgutil.h"
 
+using namespace cv;
+
 void dump_data(const struct quirc_data *data)
 {
 	printf("    Version: %d\n", data->version);
@@ -54,27 +56,25 @@ void dump_cells(const struct quirc_code *code)
 	}
 }
 
-int load_image(struct quirc *q, const char *filename)
-{
-    IplImage *img = cvLoadImage(filename,CV_LOAD_IMAGE_GRAYSCALE);
-    printf("%d\n",img->nChannels);
-    cvShowImage("OpenCV image",img);
-    cv_to_quirc(q, img);
-    cvReleaseImage(&img);
-    
-    return 0;
+int load_image(struct quirc *q, const char *filename){
+  Mat img = imread(filename,CV_LOAD_IMAGE_GRAYSCALE);
+  printf("%d\n",img.channels());
+  imshow("OpenCV image",img);
+  cv_to_quirc(q, img);
+  
+  return 0;
 }
 
-void cv_to_quirc(struct quirc *q, IplImage *img){
+void cv_to_quirc(struct quirc *q, Mat& img){
 	uint8_t *image;
-	quirc_resize(q, img->width, img->height);
+	quirc_resize(q, img.cols, img.rows);
 
 	image = quirc_begin(q, NULL, NULL);
     
-	for (int y = 0; y < img->height; y++) {
-		uint8_t *row_pointer = image + y * img->widthStep;
-        for(int x = 0; x < img->width; x++){
-            row_pointer[x] = (uint8_t) img->imageData[(y*img->widthStep) + x];
-        }
+	for (int y = 0; y < img.rows; y++) {
+    uint8_t *row_pointer = image + y * img.cols;
+    for(int x = 0; x < img.cols; x++){
+        row_pointer[x] = img.at<uint8_t>(x,y);
+    }
 	}
 }

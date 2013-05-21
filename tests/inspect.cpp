@@ -16,12 +16,15 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <SDL.h>
 #include <SDL_gfxPrimitives.h>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include "quirc_internal.h"
 #include "dbgutil.h"
+
+using namespace cv;
 
 static void dump_info(struct quirc *q)
 {
@@ -218,7 +221,7 @@ static int sdl_examine(struct quirc *q)
 	return 0;
 }
 
-void drawBoundingBox(IplImage* img, const struct quirc_code *code){
+void drawBoundingBox(Mat& img, const struct quirc_code *code){
   int x0 = code->corners[0].x;
   int y0 = code->corners[0].y;
   int x1 = code->corners[1].x;
@@ -239,8 +242,8 @@ void drawBoundingBox(IplImage* img, const struct quirc_code *code){
   int xC, yC;
   xC = (x0+x2)/2;
   yC = (y0+y2)/2;
-  cvCircle( img, cvPoint(xC,yC), 3, cvScalar(127,127,127), -1, 8,0);
-  
+//  cvCircle( img, cvPoint(xC,yC), 3, cvScalar(127,127,127), -1, 8,0);
+  circle(img, Point(xC,yC), 3, Scalar(127,127,127), -1, 8, 0);
   // compute and print rotation
   int deltaX = x1-x0;
   int deltaY = y1-y0;
@@ -250,10 +253,10 @@ void drawBoundingBox(IplImage* img, const struct quirc_code *code){
   angle += 180;
   
   //cvFillPoly(img, &points, &npts, 1, cvScalar(127,127,127), 8, 0);
-  int lato1 = sqrt(pow(x0-x1,2)+pow(y0-y1,2));
-  int lato2 = sqrt(pow(x1-x2,2)+pow(y1-y2,2));
-  int lato3 = sqrt(pow(x2-x3,2)+pow(y2-y3,2));
-  int lato4 = sqrt(pow(x3-x0,2)+pow(y3-y0,2));
+  int lato1 = sqrt(pow((double)x0-x1,2)+pow((double)y0-y1,2));
+  int lato2 = sqrt(pow((double)x1-x2,2)+pow((double)y1-y2,2));
+  int lato3 = sqrt(pow((double)x2-x3,2)+pow((double)y2-y3,2));
+  int lato4 = sqrt(pow((double)x3-x0,2)+pow((double)y3-y0,2));
   
   if(angle < 45 || angle > 360-45){
     printf("AAAAAAAAAAAAAAAA");
@@ -291,7 +294,7 @@ void drawBoundingBox(IplImage* img, const struct quirc_code *code){
   }
 }
 
-int elaboraQR(IplImage* frame_BW, struct quirc *q){
+int elaboraQR(Mat& frame_BW, struct quirc *q){
 	
 	quirc_end(q);
   
@@ -325,7 +328,7 @@ int elaboraQR(IplImage* frame_BW, struct quirc *q){
 	}
   
 	
-  cvShowImage("Frame",frame_BW);
+  imshow("Frame",frame_BW);
   
   cvWaitKey();
 	//if (sdl_examine(q) < 0) {
@@ -350,22 +353,21 @@ int main(int argc, char **argv)
 	}
 
 	if (argc < 2) { // load video
-        CvCapture* capture = cvCaptureFromCAM(0);;
-        if (capture==NULL) {
+        VideoCapture capture;
+        capture.open(0);
+        if (!capture.isOpened()) {
             printf("Errore durante il caricamento del capture.\n");
             return 1;
         }
-        
+        Mat frame, frame_BW;
         for(;;)
         {
-            cvGrabFrame(capture);
-            IplImage* frame = cvQueryFrame( capture );
-            IplImage* frame_BW = cvCreateImage(cvSize(frame->width, frame->height),IPL_DEPTH_8U,1);
-            cvCvtColor(frame,frame_BW,CV_BGR2GRAY);
-            if (frame==NULL) {
+            capture >> frame;
+            if (!frame.data) {
                 printf("Errore durante il caricamento del frame.\n");
                 return -1;
             }
+            cvtColor(frame, frame_BW, CV_BGR2GRAY);
             cv_to_quirc(q, frame_BW);
             elaboraQR(frame_BW,q);
         }
@@ -373,14 +375,14 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-  IplImage *img = cvLoadImage(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
-  if(img == NULL){
+  Mat img = imread(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
+  if(!img.data){
+    printf("Errore durante il caricamento dell'immagine.\n");
     quirc_destroy(q);
     return -1;
   }
   if(elaboraQR(img,q) < 0){
     quirc_destroy(q);
-    cvReleaseImage(&img);
     return -1;
   }
   

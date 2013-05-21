@@ -21,6 +21,8 @@
 #include <opencv/highgui.h>
 #include "quirc.h"
 
+using namespace cv;
+
 /* Dump decoded information on stdout. */
 void dump_data(const struct quirc_data *data);
 
@@ -35,6 +37,6 @@ void dump_cells(const struct quirc_code *code);
 int load_image(struct quirc *q, const char *filename);
 
 
-void cv_to_quirc(struct quirc *q, IplImage *img);
+void cv_to_quirc(struct quirc *q, Mat& img);
 
 #endif
