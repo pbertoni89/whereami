@@ -31,10 +31,10 @@ LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
 all: libquirc.so inspect calibration
 
 inspect: tests/dbgutil.o tests/inspect.o libquirc.a
-	g++ -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx `pkg-config --cflags --libs opencv`
+	g++ -O3 -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx `pkg-config --cflags --libs opencv`
 
 calibration: calibration.o
-	g++ -o $@ $^ `pkg-config --cflags --libs opencv`
+	g++ -O3 -o $@ $^ `pkg-config --cflags --libs opencv`
 
 libquirc.a: $(LIB_OBJ)
 	rm -f $@
@@ -42,13 +42,13 @@ libquirc.a: $(LIB_OBJ)
 	ranlib $@
 
 libquirc.so: $(LIB_SOBJ)
-	cc -shared -Wl, -dynamiclib -o $@ $^ -lm
+	cc -O3 -shared -Wl, -dynamiclib -o $@ $^ -lm
 
 %.o: %.cpp
-	cc $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
+	cc -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
 
 %.lo: %.cpp
-	cc -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
+	cc -O3 -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
 
 install: libquirc.a libquirc.so
 	install -o root -g root -m 0644 lib/quirc.h $(DESTDIR)$(PREFIX)/include

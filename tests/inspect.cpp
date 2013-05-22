@@ -23,7 +23,7 @@
 #include <opencv/highgui.h>
 #include "quirc_internal.h"
 #include "dbgutil.h"
-
+int frameNum = 0;
 using namespace cv;
 
 int loadCameraParams(char* filename, Mat& intrinsic_matrix, Mat& distortion_coeffs){
@@ -44,7 +44,7 @@ static void dump_info(struct quirc *q)
 	int count = quirc_count(q);
 	int i;
 
-	printf("%d QR-codes found:\n\n", count);
+//	printf("%d QR-codes found:\n\n", count);
 	for (i = 0; i < count; i++) {
 		struct quirc_code code;
 		struct quirc_data data;
@@ -282,7 +282,9 @@ void drawBoundingBox(Mat& img, const struct quirc_code *code){
       printf("Rivolto verso il basso\n");
     }*/
     double fattore = 594; // distanza_nota * pixel_rilevati / dimensione_nota
-    double dimMMQR = 50; // 50 su iPhone, 260 su schermo intero da 19"
+    // 594 macbook
+    // 815 philips
+    double dimMMQR = 188; // 50 su iPhone, 260 su schermo intero da 19"
     double distanza_lato4 = fattore*dimMMQR/(lato4);
     double distanza_lato2 = fattore*dimMMQR/(lato2);
 
@@ -316,7 +318,7 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 	int count = quirc_count(q);
 	int i;
 
-	//printf("%d QR-codes found:\n\n", count);
+  printf("%d QR-codes found:\n\n (frame elaborati %d)", count, ++frameNum);
 	for (i = 0; i < count; i++) {
 		struct quirc_code code;
 		struct quirc_data data;
@@ -330,7 +332,7 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
     
     
 		if (err) {
-			;//printf("  Decoding FAILED: %s\n", quirc_strerror(err));
+      ;//printf("  Decoding FAILED: %s\n", quirc_strerror(err));
 		} else {
       drawBoundingBox(frame_BW, &code);
 			//printf("  Decoding successful:\n");
@@ -340,7 +342,8 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 		//printf("\n");
     
 	}
-
+  Mat frame_small;
+  resize(frame_BW, frame_small, Size(frame_BW.cols/4, frame_BW.rows/4));
   imshow("Frame",frame_BW);
   
   //cvWaitKey();
@@ -375,7 +378,7 @@ int main(int argc, char **argv)
             printf("Errore durante il caricamento del capture.\n");
             return 1;
         }
-        Mat frame, frame_undistort, frame_BW;
+        Mat frame, frame_undistort, frame_BW, frame_small;
         for(;;)
         {
             capture >> frame;
@@ -385,7 +388,10 @@ int main(int argc, char **argv)
                 return -1;
             }
             undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
-            cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
+            cvtColor(frame, frame_BW, CV_BGR2GRAY);
+            //GaussianBlur(frame_BW, frame_undistort, Size(3,3), 1);
+            //frame_BW = frame_undistort;
+            //resize(frame_BW, frame_small, Size(frame_BW.cols/2, frame_BW.rows/2));
             cv_to_quirc(q, frame_BW);
             elaboraQR(frame_BW,q);
         }
