@@ -170,7 +170,7 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 	quirc_extract(q, 0, &code); // only recognize the first QR code found in the image
 	err = quirc_decode(&code, &data);
   
-	if (err == 0 && data.payload_len) {
+	if (err == 0) {
     printf("Found new QR code.\n");
     printf("Requesting mutex\n");
     while(pthread_mutex_lock(&mutex) != 0);
@@ -202,19 +202,23 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 
 void* scanningFunc(void *arg){
   printf("Scanning thread started!\n");
-	struct quirc *q;
-    
-	q = quirc_new();
-	if (!q) {
-		perror("Can't create quirc object");
-		exit(1);
-	}
+	
 
   Mat intrinsic_matrix, distortion_coeffs;
   loadCameraParams(filePath,intrinsic_matrix, distortion_coeffs);
   
   Mat frame, frame_undistort, frame_BW, frame_small;
   for(;;){
+    // should be out of the loop, it's here because of a library bug
+  	struct quirc *q; 
+    
+  	q = quirc_new();
+  	if (!q) {
+  		perror("Can't create quirc object");
+  		exit(1);
+  	}
+    // end of out of the loop
+    
     capture >> frame;
     if (!frame.data) {
       printf("Errore durante il caricamento del frame.\n");
@@ -223,8 +227,13 @@ void* scanningFunc(void *arg){
     cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
     cv_to_quirc(q, frame_BW);
     elaboraQR(frame_BW,q);
+    
+    // should be out of the loop, it's here because of a library bug
+    quirc_destroy(q);
+    // end of out of the loop
+    
   }
-  quirc_destroy(q);
+  
 }
 
 void diep(char *s){
