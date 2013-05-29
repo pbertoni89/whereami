@@ -17,14 +17,53 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <SDL.h>
-#include <SDL_gfxPrimitives.h>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
+#include <sys/time.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "quirc_internal.h"
 #include "dbgutil.h"
+#include <signal.h>
+#define MAXLENGTH 256
+
+//used for the requests
+#define BUFLEN 512
+#define PORT "9930"
+pthread_t serverThread;
+pthread_t scanningThread;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+char * filePath;
+VideoCapture capture;
+
+#pragma pack(1)
+typedef struct sqrinfos{
+  int messageLength;
+  int payloadTruncated;
+  char qrMessage[MAXLENGTH+1];
+  int x0,y0,x1,y1,x2,y2,x3,y3; // the coordinates of the four QR code points
+  double distance;
+  double perspectiveRotation; // inclinazione rispetto all'osservatore (profondita')
+  double verticalRotation; // inclinazione verticale
+  struct timeval timestampRecognition;
+  struct timeval timestampCurrent;
+  int structHash;
+} QRInfos;
+#pragma pack(0)
+
 int frameNum = 0;
+QRInfos qrInfo;
+
 using namespace cv;
+
 
 int loadCameraParams(char* filename, Mat& intrinsic_matrix, Mat& distortion_coeffs){
     CvFileStorage* fs = cvOpenFileStorage( filename, 0, CV_STORAGE_READ );
@@ -37,239 +76,42 @@ int loadCameraParams(char* filename, Mat& intrinsic_matrix, Mat& distortion_coef
 }
 
 
-
-static void dump_info(struct quirc *q)
-{
-  return;
-	int count = quirc_count(q);
-	int i;
-
-//	printf("%d QR-codes found:\n\n", count);
-	for (i = 0; i < count; i++) {
-		struct quirc_code code;
-		struct quirc_data data;
-		quirc_decode_error_t err;
-
-		quirc_extract(q, i, &code);
-		err = quirc_decode(&code, &data);
-
-		dump_cells(&code);
-		printf("\n");
-
-		if (err) {
-			printf("  Decoding FAILED: %s\n", quirc_strerror(err));
-		} else {
-			printf("  Decoding successful:\n");
-			dump_data(&data);
-		}
-
-		printf("\n");
-	}
-}
-
-static void draw_frame(SDL_Surface *screen, struct quirc *q)
-{
-	uint8_t *pix;
-	uint8_t *raw = q->image;
-	int x, y;
-
-	SDL_LockSurface(screen);
-	pix = (uint8_t *)screen->pixels;
-	for (y = 0; y < q->h; y++) {
-		uint32_t *row = (uint32_t *)pix;
-
-		for (x = 0; x < q->w; x++) {
-			uint8_t v = *(raw++);
-			uint32_t color = (v << 16) | (v << 8) | v;
-			struct quirc_region *reg = &q->regions[v];
-
-			switch (v) {
-			case QUIRC_PIXEL_WHITE:
-				color = 0x00ffffff;
-				break;
-
-			case QUIRC_PIXEL_BLACK:
-				color = 0x00000000;
-				break;
-
-			default:
-				if (reg->capstone >= 0)
-					color = 0x00008000;
-				else
-					color = 0x00808080;
-				break;
-			}
-
-			*(row++) = color;
-		}
-
-		pix += screen->pitch;
-	}
-	SDL_UnlockSurface(screen);
-}
-
-static void draw_blob(SDL_Surface *screen, int x, int y)
-{
-	int i, j;
-
-	for (i = -2; i <= 2; i++)
-		for (j = -2; j <= 2; j++)
-			pixelColor(screen, x + i, y + j, 0x0000ffff);
-}
-
-static void draw_mark(SDL_Surface *screen, int x, int y)
-{
-	pixelColor(screen, x, y, 0xff0000ff);
-	pixelColor(screen, x + 1, y, 0xff0000ff);
-	pixelColor(screen, x - 1, y, 0xff0000ff);
-	pixelColor(screen, x, y + 1, 0xff0000ff);
-	pixelColor(screen, x, y - 1, 0xff0000ff);
-}
-
-static void draw_capstone(SDL_Surface *screen, struct quirc *q, int index)
-{
-	struct quirc_capstone *cap = &q->capstones[index];
-	int j;
-	char buf[8];
-
-	for (j = 0; j < 4; j++) {
-		struct quirc_point *p0 = &cap->corners[j];
-		struct quirc_point *p1 = &cap->corners[(j + 1) % 4];
-
-		lineColor(screen, p0->x, p0->y, p1->x, p1->y,
-			  0x800080ff);
-	}
-
-	draw_blob(screen, cap->corners[0].x, cap->corners[0].y);
-
-	if (cap->qr_grid < 0) {
-		snprintf(buf, sizeof(buf), "?%d", index);
-		stringColor(screen, cap->center.x, cap->center.y, buf,
-			    0x000000ff);
-	}
-}
-
-static void perspective_map(const double *c,
-			    double u, double v, struct quirc_point *ret)
-{
-	double den = c[6]*u + c[7]*v + 1.0;
-	double x = (c[0]*u + c[1]*v + c[2]) / den;
-	double y = (c[3]*u + c[4]*v + c[5]) / den;
-
-	ret->x = rint(x);
-	ret->y = rint(y);
-}
-
-static void draw_grid(SDL_Surface *screen, struct quirc *q, int index)
-{
-	struct quirc_grid *qr = &q->grids[index];
-	int x, y;
-	int i;
-
-	for (i = 0; i < 3; i++) {
-		struct quirc_capstone *cap = &q->capstones[qr->caps[i]];
-		char buf[8];
-
-		snprintf(buf, sizeof(buf), "%d.%c", index, "ABC"[i]);
-		stringColor(screen, cap->center.x, cap->center.y, buf,
-			    0x000000ff);
-	}
-
-	lineColor(screen, qr->tpep[0].x, qr->tpep[0].y,
-		  qr->tpep[1].x, qr->tpep[1].y, 0xff00ffff);
-	lineColor(screen, qr->tpep[1].x, qr->tpep[1].y,
-		  qr->tpep[2].x, qr->tpep[2].y, 0xff00ffff);
-
-	if (qr->align_region >= 0)
-		draw_blob(screen, qr->align.x, qr->align.y);
-
-	for (y = 0; y < qr->grid_size; y++) {
-		for (x = 0; x < qr->grid_size; x++) {
-			double u = x + 0.5;
-			double v = y + 0.5;
-			struct quirc_point p;
-
-			perspective_map(qr->c, u, v, &p);
-			draw_mark(screen, p.x, p.y);
-		}
-	}
-}
-
-static int sdl_examine(struct quirc *q)
-{
-	SDL_Surface *screen;
-	SDL_Event ev;
-
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-		fprintf(stderr, "couldn't init SDL: %s\n", SDL_GetError());
-		return -1;
-	}
-
-	screen = SDL_SetVideoMode(q->w, q->h, 32, SDL_SWSURFACE);
-	if (!screen) {
-		fprintf(stderr, "couldn't init video mode: %s\n",
-			SDL_GetError());
-		return -1;
-	}
-
-	while (SDL_WaitEvent(&ev) >= 0) {
-		int i;
-
-		if (ev.type == SDL_QUIT)
-			break;
-
-		if (ev.type == SDL_KEYDOWN &&
-		    ev.key.keysym.sym == 'q')
-			break;
-
-		draw_frame(screen, q);
-		for (i = 0; i < q->num_capstones; i++)
-			draw_capstone(screen, q, i);
-		for (i = 0; i < q->num_grids; i++)
-			draw_grid(screen, q, i);
-		SDL_Flip(screen);
-	}
-
-	SDL_Quit();
-	return 0;
-}
-
 void drawBoundingBox(Mat& img, const struct quirc_code *code){
-  int x0 = code->corners[0].x;
-  int y0 = code->corners[0].y;
-  int x1 = code->corners[1].x;
-  int y1 = code->corners[1].y;
-  int x2 = code->corners[2].x;
-  int y2 = code->corners[2].y;
-  int x3 = code->corners[3].x;
-  int y3 = code->corners[3].y;
+  qrInfo.x0 = code->corners[0].x;
+  qrInfo.y0 = code->corners[0].y;
+  qrInfo.x1 = code->corners[1].x;
+  qrInfo.y1 = code->corners[1].y;
+  qrInfo.x2 = code->corners[2].x;
+  qrInfo.y2 = code->corners[2].y;
+  qrInfo.x3 = code->corners[3].x;
+  qrInfo.y3 = code->corners[3].y;
   
   int npts = 4;
   CvPoint *points;
-  points = (CvPoint*) malloc(sizeof(CvPoint)*4);
-  for(int i = 0; i< 4; i++){
+  points = (CvPoint*) malloc(sizeof(CvPoint)*npts);
+  for(int i = 0; i< npts; i++){
     points[i] = cvPoint(code->corners[i].x,code->corners[i].y);
   }
   
   // draw center
   int xC, yC;
-  xC = (x0+x2)/2;
-  yC = (y0+y2)/2;
+  xC = (qrInfo.x0+qrInfo.x2)/2;
+  yC = (qrInfo.y0+qrInfo.y2)/2;
 //  cvCircle( img, cvPoint(xC,yC), 3, cvScalar(127,127,127), -1, 8,0);
   circle(img, Point(xC,yC), 3, Scalar(127,127,127), -1, 8, 0);
   // compute and print rotation
-  int deltaX = x1-x0;
-  int deltaY = y1-y0;
+  int deltaX = qrInfo.x1-qrInfo.x0;
+  int deltaY = qrInfo.y1-qrInfo.y0;
   double angle = atan2(deltaY,deltaX)*180./CV_PI;
   printf("Inclinazione rispetto all'asse verticale: %f\n",angle);
-  
+  qrInfo.verticalRotation = angle;
   angle += 180;
   
   //cvFillPoly(img, &points, &npts, 1, cvScalar(127,127,127), 8, 0);
-  double lato1 = sqrt(pow((double)x0-x1,2)+pow((double)y0-y1,2));
-  double lato2 = sqrt(pow((double)x1-x2,2)+pow((double)y1-y2,2));
-  double lato3 = sqrt(pow((double)x2-x3,2)+pow((double)y2-y3,2));
-  double lato4 = sqrt(pow((double)x3-x0,2)+pow((double)y3-y0,2));
+  //double lato1 = sqrt(pow((double)qrInfo.x0-qrInfo.x1,2)+pow((double)qrInfo.y0-qrInfo.y1,2));
+  double lato2 = sqrt(pow((double)qrInfo.x1-qrInfo.x2,2)+pow((double)qrInfo.y1-qrInfo.y2,2));
+  //double lato3 = sqrt(pow((double)qrInfo.x2-qrInfo.x3,2)+pow((double)qrInfo.y2-qrInfo.y3,2));
+  double lato4 = sqrt(pow((double)qrInfo.x3-qrInfo.x0,2)+pow((double)qrInfo.y3-qrInfo.y0,2));
   
   if(angle < 45 || angle > 360-45){
     printf("AAAAAAAAAAAAAAAA");
@@ -295,6 +137,8 @@ void drawBoundingBox(Mat& img, const struct quirc_code *code){
     latoDiff = abs(latoDiff) < threshold ? 0 : latoDiff;
     double angleProsp = asin((distanza_lato2-distanza_lato4)/dimMMQR)*180./CV_PI;
     
+    qrInfo.perspectiveRotation = angleProsp;
+    
     if(latoDiff > 0){
       printf("Rivolto verso destra (%lf).\n",angleProsp);
     } else if(latoDiff < 0){
@@ -303,7 +147,9 @@ void drawBoundingBox(Mat& img, const struct quirc_code *code){
       printf("Rivolto frontalmente\n");
     }
     // distanza_qr = fattore * dimensione_nota / pixel_rilevati
-    printf("Distanza dalla fotocamera (%d px): %lf cm\n",pixelQR,(distanza_lato2+distanza_lato4)/(2 * 10));
+    qrInfo.distance = (distanza_lato2+distanza_lato4)/(2 * 10);
+    printf("Distanza dalla fotocamera (%d px): %lf cm\n",pixelQR,qrInfo.distance);
+    gettimeofday(&qrInfo.timestampRecognition,NULL);
   } else{
     printf("DDDDDDDDDDDDDDDD");
   }
@@ -313,103 +159,223 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 	
 	quirc_end(q);
   
-	//dump_info(q);
+	// int count = quirc_count(q);
   
-	int count = quirc_count(q);
-	int i;
+  // printf("%d QR-codes found:\n\n (frame elaborati %d)", count, ++frameNum);
 
-  printf("%d QR-codes found:\n\n (frame elaborati %d)", count, ++frameNum);
-	for (i = 0; i < count; i++) {
-		struct quirc_code code;
-		struct quirc_data data;
-		quirc_decode_error_t err;
+	struct quirc_code code;
+	struct quirc_data data;
+	quirc_decode_error_t err;
 
-		quirc_extract(q, i, &code);
-		err = quirc_decode(&code, &data);
-    
-		//dump_cells(&code);
-		//printf("\n");
-    
-    
-		if (err) {
-      ;//printf("  Decoding FAILED: %s\n", quirc_strerror(err));
-		} else {
+	quirc_extract(q, 0, &code); // only recognize the first QR code found in the image
+	err = quirc_decode(&code, &data);
+  
+	if (err == 0 && data.payload_len) {
+    printf("Found new QR code.\n");
+    printf("Requesting mutex\n");
+    while(pthread_mutex_lock(&mutex) != 0);
+    printf("Mutex acquired\n");
       drawBoundingBox(frame_BW, &code);
-			//printf("  Decoding successful:\n");
-		  // dump_data(&data);
-		}
-
-		//printf("\n");
-    
+      int dataToCopy = data.payload_len;
+      int payloadTruncated = 0;
+      if(dataToCopy>MAXLENGTH){
+        dataToCopy = MAXLENGTH;
+        payloadTruncated = 1;
+      }
+      qrInfo.payloadTruncated = payloadTruncated;
+      memcpy ( qrInfo.qrMessage, data.payload, dataToCopy+1 );
+      qrInfo.qrMessage[MAXLENGTH] = '\0';
+      printf("Payload: %s\n ",qrInfo.qrMessage);
+      printf("\n");
+      dump_data(&data);
+    while(pthread_mutex_unlock(&mutex) != 0);
+    return 0;
 	}
+  /*
   Mat frame_small;
   resize(frame_BW, frame_small, Size(frame_BW.cols/4, frame_BW.rows/4));
   imshow("Frame",frame_BW);
-  
-  //cvWaitKey();
-  
-	//if (sdl_examine(q) < 0) {
-  //	return -1;
-  //}
+  */
   return 0;
 }
 
-int main(int argc, char **argv)
-{
-	struct quirc *q;
 
-	printf("quirc inspection program\n");
-	printf("Copyright (C) 2010-2012 Daniel Beer <dlbeer@gmail.com>\n");
-	printf("Library version: %s\n", quirc_version());
-	printf("\n");
+void* scanningFunc(void *arg){
+  printf("Scanning thread started!\n");
+	struct quirc *q;
     
 	q = quirc_new();
 	if (!q) {
-		perror("can't create quirc object");
-		return -1;
+		perror("Can't create quirc object");
+		exit(1);
 	}
 
-	if (argc < 3) { // load video
-        VideoCapture capture;
-        capture.open(0);
-        Mat intrinsic_matrix, distortion_coeffs;
-        loadCameraParams(argv[1],intrinsic_matrix, distortion_coeffs);
-        if (!capture.isOpened()) {
-            printf("Errore durante il caricamento del capture.\n");
-            return 1;
-        }
-        Mat frame, frame_undistort, frame_BW, frame_small;
-        for(;;)
-        {
-            capture >> frame;
-            
-            if (!frame.data) {
-                printf("Errore durante il caricamento del frame.\n");
-                return -1;
-            }
-            undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
-            cvtColor(frame, frame_BW, CV_BGR2GRAY);
-            //GaussianBlur(frame_BW, frame_undistort, Size(3,3), 1);
-            //frame_BW = frame_undistort;
-            //resize(frame_BW, frame_small, Size(frame_BW.cols/2, frame_BW.rows/2));
-            cv_to_quirc(q, frame_BW);
-            elaboraQR(frame_BW,q);
-        }
-        quirc_destroy(q);
-		return 0;
-	}
-
-  Mat img = imread(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
-  if(!img.data){
-    printf("Errore durante il caricamento dell'immagine.\n");
-    quirc_destroy(q);
-    return -1;
+  Mat intrinsic_matrix, distortion_coeffs;
+  loadCameraParams(filePath,intrinsic_matrix, distortion_coeffs);
+  
+  Mat frame, frame_undistort, frame_BW, frame_small;
+  for(;;){
+    capture >> frame;
+    if (!frame.data) {
+      printf("Errore durante il caricamento del frame.\n");
+    }
+    undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
+    cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
+    cv_to_quirc(q, frame_BW);
+    elaboraQR(frame_BW,q);
   }
-  cv_to_quirc(q, img);
-  if(elaboraQR(img,q) < 0){
-    quirc_destroy(q);
-    return -1;
+  quirc_destroy(q);
+}
+
+void diep(char *s){
+  perror(s);
+  exit(1);
+}
+
+#define BACKLOG 10	 // how many pending connections queue will hold
+
+void sigchld_handler(int s)
+{
+	while(waitpid(-1, NULL, WNOHANG) > 0);
+}
+
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+	if (sa->sa_family == AF_INET) {
+		return &(((struct sockaddr_in*)sa)->sin_addr);
+	}
+
+	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+void* serverFunc(void* arg){
+  printf("Server thread started!\n");
+  
+  
+	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
+	struct addrinfo hints, *servinfo, *p;
+	struct sockaddr_storage their_addr; // connector's address information
+	socklen_t sin_size;
+	struct sigaction sa;
+	int yes=1;
+	char s[INET6_ADDRSTRLEN];
+	int rv;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE; // use my IP
+
+	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		exit(1);
+	}
+
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+			perror("server: socket");
+			continue;
+		}
+
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+				sizeof(int)) == -1) {
+			perror("setsockopt");
+			exit(1);
+		}
+
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("server: bind");
+			continue;
+		}
+
+		break;
+	}
+
+	if (p == NULL)  {
+		fprintf(stderr, "server: failed to bind\n");
+		exit(1);
+	}
+
+	freeaddrinfo(servinfo); // all done with this structure
+
+	if (listen(sockfd, BACKLOG) == -1) {
+		perror("listen");
+		exit(1);
+	}
+
+	sa.sa_handler = sigchld_handler; // reap all dead processes
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+		perror("sigaction");
+		exit(1);
+	}
+
+	printf("server: waiting for connections...\n");
+
+	while(1) {  // main accept() loop
+		sin_size = sizeof their_addr;
+		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+		if (new_fd == -1) {
+			perror("accept");
+			continue;
+		}
+
+		inet_ntop(their_addr.ss_family,
+			get_in_addr((struct sockaddr *)&their_addr),
+			s, sizeof s);
+		printf("server: got connection from %s\n", s);
+
+		if (!fork()) { // this is the child process
+			close(sockfd); // child doesn't need the listener
+      while(pthread_mutex_lock(&mutex) != 0);
+      gettimeofday(&qrInfo.timestampCurrent,NULL);
+      
+			if (send(new_fd, &qrInfo, sizeof(QRInfos), 0) == -1){
+        while(pthread_mutex_unlock(&mutex) != 0);
+				perror("send");
+      }
+      while(pthread_mutex_unlock(&mutex) != 0);
+			close(new_fd);
+			exit(0);
+		}
+		close(new_fd);  // parent doesn't need this
+	}
+}
+
+int main(int argc, char **argv){
+  qrInfo.messageLength = MAXLENGTH;
+  
+  pthread_mutex_unlock(&mutex);
+  if(argc < 2){
+    printf("Usage: ./inspect calibration_file.yml\n");
+    exit(1);
+  }
+  filePath = argv[1];
+  
+  capture.open(0);
+  if (!capture.isOpened()) {
+      printf("Errore durante il caricamento del capture.\n");
+      exit(1);
   }
   
+  int ret = pthread_create(&serverThread, NULL, &serverFunc, NULL);
+  if(ret != 0){
+    printf("Error creating the server thread. [%s]\n",strerror(ret));
+    exit(1);
+  }
+  
+  ret = pthread_create(&scanningThread, NULL, &scanningFunc, NULL);
+  if(ret != 0){
+    printf("Error creating the scanner thread. [%s]\n",strerror(ret));
+    exit(1);
+  }
+
+  pthread_exit(NULL);
+
 	return 0;
 }

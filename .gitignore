@@ -1,9 +1,9 @@
 *.o
 *.lo
-quirc-demo
-quirc-scanner
-qrtest
+.DS_Store
 inspect
+client
+calibration
 libquirc.a
 libquirc.so
 .*.swp

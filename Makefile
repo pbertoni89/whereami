@@ -14,13 +14,11 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 PREFIX ?= /usr/local
-SDL_CFLAGS := $(shell pkg-config --cflags sdl)
-SDL_LIBS := $(shell pkg-config --libs sdl)
 
 LIB_VERSION = 1.0
 LIB_SONAME = libquirc.so.1
 
-QUIRC_CFLAGS = -g -Wall -Ilib $(CFLAGS) $(SDL_CFLAGS)
+QUIRC_CFLAGS = -g -Wall -Ilib $(CFLAGS)
 LIB_OBJ = \
     lib/decode.o \
     lib/identify.o \
@@ -28,10 +26,10 @@ LIB_OBJ = \
     lib/version_db.o
 LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
 
-all: libquirc.so inspect calibration
+all: libquirc.so inspect calibration client
 
 inspect: src/dbgutil.o src/inspect.o libquirc.a
-	g++ -O3 -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx `pkg-config --cflags --libs opencv`
+	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 calibration: src/calibration.o
 	g++ -O3 -o $@ $^ `pkg-config --cflags --libs opencv`
@@ -76,3 +74,4 @@ clean:
 	rm -f libquirc.so
 	rm -f inspect
 	rm -f calibration
+	rm -f client
