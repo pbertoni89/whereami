@@ -30,11 +30,14 @@ LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
 
 all: libquirc.so inspect calibration
 
-inspect: tests/dbgutil.o tests/inspect.o libquirc.a
+inspect: src/dbgutil.o src/inspect.o libquirc.a
 	g++ -O3 -o $@ $^ -lm -ljpeg $(SDL_LIBS) -lSDL_gfx `pkg-config --cflags --libs opencv`
 
-calibration: calibration.o
+calibration: src/calibration.o
 	g++ -O3 -o $@ $^ `pkg-config --cflags --libs opencv`
+
+client: src/client.o
+	g++ -O3 -o $@ $^
 
 libquirc.a: $(LIB_OBJ)
 	rm -f $@
