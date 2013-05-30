@@ -102,7 +102,7 @@ int main(int argc, char *argv[]){
 	printf("*** end QR proprieties ***\n");
 	
 	printf("*** Timestamps ***\n");
-	printf("Last recognized QR: %d\nCurrent time: %d", qr_info.timestamp_recognition.tv_sec, qr_info.timestamp_current.tv_sec);
+	printf("Detected %ld time ago\n", qr_info.timestamp_recognition.tv_sec-qr_info.timestamp_current.tv_sec);
 	printf("*** end Timestamps ***\n");
 
 	close(sockfd);
