@@ -31,7 +31,7 @@ pthread_t scanning_thread;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 char * file_path;
 VideoCapture capture;
-int frameNum = 0;
+int frame_number = 0;
 QRInfos qr_info;
 
 // scale_factor = known_qr_distance_mm * pixels_measured / known_size_mm. It is 
@@ -160,7 +160,7 @@ int process_qr(struct quirc *q){
     return 0;
   }
   
-  // printf("%d QR-codes found. Analyzin the first one. (frame_number: %d)", count, ++frameNum);
+  // printf("%d QR-codes found. Analyzin the first one. (frame_number: %d)", count, ++frame_number);
 
   struct quirc_code code;
   struct quirc_data data;
