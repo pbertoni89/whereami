@@ -55,7 +55,6 @@ typedef struct sqrinfos{
   double verticalRotation; // inclinazione verticale
   struct timeval timestampRecognition;
   struct timeval timestampCurrent;
-  int structHash;
 } QRInfos;
 #pragma pack(0)
 
@@ -159,7 +158,10 @@ int elaboraQR(Mat& frame_BW, struct quirc *q){
 	
 	quirc_end(q);
   
-	// int count = quirc_count(q);
+	int count = quirc_count(q);
+  if(count == 0){
+    return 0;
+  }
   
   // printf("%d QR-codes found:\n\n (frame elaborati %d)", count, ++frameNum);
 
@@ -206,18 +208,18 @@ void* scanningFunc(void *arg){
 
   Mat intrinsic_matrix, distortion_coeffs;
   loadCameraParams(filePath,intrinsic_matrix, distortion_coeffs);
+
+	struct quirc *q; 
   
+	q = quirc_new();
+	if (!q) {
+		perror("Can't create quirc object");
+		exit(1);
+	}
+
   Mat frame, frame_undistort, frame_BW, frame_small;
   for(;;){
-    // should be out of the loop, it's here because of a library bug
-  	struct quirc *q; 
     
-  	q = quirc_new();
-  	if (!q) {
-  		perror("Can't create quirc object");
-  		exit(1);
-  	}
-    // end of out of the loop
     
     capture >> frame;
     if (!frame.data) {
@@ -228,12 +230,9 @@ void* scanningFunc(void *arg){
     cv_to_quirc(q, frame_BW);
     elaboraQR(frame_BW,q);
     
-    // should be out of the loop, it's here because of a library bug
-    quirc_destroy(q);
-    // end of out of the loop
     
   }
-  
+  quirc_destroy(q);
 }
 
 void diep(char *s){
