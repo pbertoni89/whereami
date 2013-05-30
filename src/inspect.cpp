@@ -33,6 +33,9 @@
 #include "quirc_internal.h"
 #include "dbgutil.h"
 #include <signal.h>
+#ifndef __APPLE__
+#include <wait.h>
+#endif
 #define MAXLENGTH 256
 
 //used for the requests
@@ -338,20 +341,15 @@ void* serverFunc(void* arg){
 			s, sizeof s);
 		printf("server: got connection from %s\n", s);
 
-		if (!fork()) { // this is the child process
-			close(sockfd); // child doesn't need the listener
-      while(pthread_mutex_lock(&mutex) != 0);
-      gettimeofday(&qrInfo.timestampCurrent,NULL);
-      
-			if (send(new_fd, &qrInfo, sizeof(QRInfos), 0) == -1){
-        while(pthread_mutex_unlock(&mutex) != 0);
-				perror("send");
-      }
+    while(pthread_mutex_lock(&mutex) != 0);
+    gettimeofday(&qrInfo.timestampCurrent,NULL);
+    
+		if (send(new_fd, &qrInfo, sizeof(QRInfos), 0) == -1){
       while(pthread_mutex_unlock(&mutex) != 0);
-			close(new_fd);
-			exit(0);
-		}
-		close(new_fd);  // parent doesn't need this
+			perror("send");
+    }
+    while(pthread_mutex_unlock(&mutex) != 0);
+		close(new_fd);
 	}
 }
 
