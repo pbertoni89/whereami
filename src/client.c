@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -11,31 +12,16 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-
 #include <arpa/inet.h>
+#include "message.h"
 
 #define PORT "9930" // the port client will be connecting to 
 #define MAXLENGTH 256
 #define MAXDATASIZE 512 // max number of bytes we can get at once 
 
-#pragma pack(1)
-typedef struct sqrinfos{
-  int messageLength;
-  int payloadTruncated;
-  char qrMessage[MAXLENGTH];
-  int x0,y0,x1,y1,x2,y2,x3,y3; // the coordinates of the four QR code points
-  double distance;
-  double perspectiveRotation; // inclinazione rispetto all'osservatore (profondita')
-  double verticalRotation; // inclinazione verticale
-  struct timeval timestampRecognition;
-  struct timeval timestampCurrent;
-  int structHash;
-} QRInfos;
-#pragma pack(0)
 
 // get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
+void *get_in_addr(struct sockaddr *sa){
 	if (sa->sa_family == AF_INET) {
 		return &(((struct sockaddr_in*)sa)->sin_addr);
 	}
@@ -43,13 +29,13 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int main(int argc, char *argv[])
-{
-  QRInfos qrInfo;
-	int sockfd, numbytes;  
+int main(int argc, char *argv[]){
+  
+	QRInfos qr_info;
+	int sockfd, numbytes, rv;
 	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
-	int rv;
+	
 	char s[INET6_ADDRSTRLEN];
 
 	if (argc != 2) {
@@ -76,7 +62,7 @@ int main(int argc, char *argv[])
 
 		if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
 			close(sockfd);
-			perror("client: connect");
+			perror("client:onnect");
 			continue;
 		}
 
@@ -88,20 +74,36 @@ int main(int argc, char *argv[])
 		return 2;
 	}
 
-	inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
-			s, sizeof s);
+	inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
 	printf("client: connecting to %s\n", s);
 
 	freeaddrinfo(servinfo); // all done with this structure
 
-	if ((numbytes = recv(sockfd, &qrInfo, sizeof(QRInfos), 0)) == -1) {
+	if ((numbytes = recv(sockfd, &qr_info, sizeof(QRInfos), 0)) == -1) {
 	    perror("recv");
 	    exit(1);
 	}
 
-	//buf[numbytes] = '\0';
+	double center = sqrt(pow((double)qr_info.x3-qr_info.x1,2)+pow((double)qr_info.y3-qr_info.y1,2));
 
-	printf("client: received '%s'\n",qrInfo.qrMessage);
+	printf("Received data from server...\n\n");
+	
+	printf("*** Message proprieties *** \n");
+	printf("Length: %d, Payload Truncated: %s\n", qr_info.message_length, (qr_info.payload_truncated == 0? "no" : "yes"));
+	printf("*** end Message proprieties ***\n\n");
+	
+	printf("*** QR payload *** \n");
+	printf("%s\n", qr_info.qr_message);
+	printf("*** end QR payload ***\n\n");
+	
+	printf("*** QR proprieties ***\n");
+	printf("Points:\n (%d,%d), (%d,%d)\n (%d,%d), (%d,%d)\n ",qr_info.x0,qr_info.y0,qr_info.x1,qr_info.y1,qr_info.x2,qr_info.y2,qr_info.x3,qr_info.y3);
+	printf("Distance: %fmm\nPerspective Rotation: %f\nVertical Rotation: %f\nQR Center:%f\n",qr_info.distance, 			qr_info.perspective_rotation, qr_info.vertical_rotation, center);
+	printf("*** end QR proprieties ***\n");
+	
+	printf("*** Timestamps ***\n");
+	printf("Last recognized QR: %d\nCurrent time: %d", qr_info.timestamp_recognition.tv_sec, qr_info.timestamp_current.tv_sec);
+	printf("*** end Timestamps ***\n");
 
 	close(sockfd);
 

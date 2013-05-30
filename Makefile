@@ -35,7 +35,7 @@ calibration: src/calibration.o
 	g++ -O3 -o $@ $^ `pkg-config --cflags --libs opencv`
 
 client: src/client.o
-	g++ -O3 -o $@ $^
+	g++ -O3 -o $@ $^ -lm
 
 libquirc.a: $(LIB_OBJ)
 	rm -f $@
