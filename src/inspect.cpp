@@ -37,15 +37,14 @@
 #include <wait.h>
 #endif
 #define MAXLENGTH 256
-
-//used for the requests
-#define BUFLEN 512
+#define BACKLOG 10	 // how many pending connections queue will hold
 #define PORT "9930"
 pthread_t serverThread;
 pthread_t scanningThread;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 char * filePath;
 VideoCapture capture;
+struct quirc *q;
 
 #pragma pack(1)
 typedef struct sqrinfos{
@@ -66,6 +65,11 @@ QRInfos qrInfo;
 
 using namespace cv;
 
+void close_all_threads(){
+  int rc;
+  rc = pthread_kill(serverThread, SIGTERM);
+  rc = pthread_kill(scanningThread, SIGTERM);
+}
 
 int loadCameraParams(char* filename, Mat& intrinsic_matrix, Mat& distortion_coeffs){
     CvFileStorage* fs = cvOpenFileStorage( filename, 0, CV_STORAGE_READ );
@@ -212,18 +216,8 @@ void* scanningFunc(void *arg){
   Mat intrinsic_matrix, distortion_coeffs;
   loadCameraParams(filePath,intrinsic_matrix, distortion_coeffs);
 
-	struct quirc *q; 
-  
-	q = quirc_new();
-	if (!q) {
-		perror("Can't create quirc object");
-		exit(1);
-	}
-
   Mat frame, frame_undistort, frame_BW, frame_small;
-  for(;;){
-    
-    
+  while(1){
     capture >> frame;
     if (!frame.data) {
       printf("Errore durante il caricamento del frame.\n");
@@ -232,18 +226,8 @@ void* scanningFunc(void *arg){
     cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
     cv_to_quirc(q, frame_BW);
     elaboraQR(frame_BW,q);
-    
-    
   }
-  quirc_destroy(q);
 }
-
-void diep(char *s){
-  perror(s);
-  exit(1);
-}
-
-#define BACKLOG 10	 // how many pending connections queue will hold
 
 void sigchld_handler(int s)
 {
@@ -280,7 +264,7 @@ void* serverFunc(void* arg){
 
 	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		exit(1);
+		close_all_threads();
 	}
 
 	// loop through all the results and bind to the first we can
@@ -294,7 +278,7 @@ void* serverFunc(void* arg){
 		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
 				sizeof(int)) == -1) {
 			perror("setsockopt");
-			exit(1);
+			close_all_threads();
 		}
 
 		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
@@ -308,14 +292,14 @@ void* serverFunc(void* arg){
 
 	if (p == NULL)  {
 		fprintf(stderr, "server: failed to bind\n");
-		exit(1);
+		close_all_threads();
 	}
 
 	freeaddrinfo(servinfo); // all done with this structure
 
 	if (listen(sockfd, BACKLOG) == -1) {
 		perror("listen");
-		exit(1);
+		close_all_threads();
 	}
 
 	sa.sa_handler = sigchld_handler; // reap all dead processes
@@ -323,7 +307,7 @@ void* serverFunc(void* arg){
 	sa.sa_flags = SA_RESTART;
 	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
 		perror("sigaction");
-		exit(1);
+		close_all_threads();
 	}
 
 	printf("server: waiting for connections...\n");
@@ -369,6 +353,12 @@ int main(int argc, char **argv){
       exit(1);
   }
   
+	q = quirc_new();
+	if (!q) {
+		perror("Can't create quirc object");
+		exit(1);
+	}
+  
   int ret = pthread_create(&serverThread, NULL, &serverFunc, NULL);
   if(ret != 0){
     printf("Error creating the server thread. [%s]\n",strerror(ret));
@@ -378,8 +368,11 @@ int main(int argc, char **argv){
   ret = pthread_create(&scanningThread, NULL, &scanningFunc, NULL);
   if(ret != 0){
     printf("Error creating the scanner thread. [%s]\n",strerror(ret));
+    close_all_threads();
     exit(1);
   }
+  
+  quirc_destroy(q);
 
   pthread_exit(NULL);
 
