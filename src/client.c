@@ -84,26 +84,30 @@ int main(int argc, char *argv[]){
 	    exit(1);
 	}
 
-	double center = sqrt(pow((double)qr_info.x3-qr_info.x1,2)+pow((double)qr_info.y3-qr_info.y1,2));
+    int x_center, y_center;
+    x_center = (qr_info.x0+qr_info.x2)/2;
+    y_center = (qr_info.y0+qr_info.y2)/2;
+	
 
 	printf("Received data from server...\n\n");
 	
-	printf("*** Message proprieties *** \n");
+	printf("****************** BEGIN MESSAGE ******************\n");
 	printf("Length: %d, Payload Truncated: %s\n", qr_info.message_length, (qr_info.payload_truncated == 0? "no" : "yes"));
-	printf("*** end Message proprieties ***\n\n");
-	
-	printf("*** QR payload *** \n");
+	printf("Detected %ld seconds ago\n", qr_info.timestamp_current.tv_sec-qr_info.timestamp_recognition.tv_sec);
+	printf("\n");
+    	
+	printf("************ PROPERTIES ****************\n");
+	printf("Points:\n (%d,%d), (%d,%d)\n (%d,%d), (%d,%d)\n",qr_info.x0,qr_info.y0,qr_info.x1,qr_info.y1,qr_info.x2,qr_info.y2,qr_info.x3,qr_info.y3);
+    printf("Center: \t\t(%d,%d)\n",x_center,y_center);
+	printf("Distance: \t\t%fmm\nPerspective Rotation: \t%f deg\nVertical Rotation: \t%f deg\n",qr_info.distance, qr_info.perspective_rotation, qr_info.vertical_rotation);
+	printf("************ END PROPERTIES ************\n\n");
+
+	printf("************ PAYLOAD *******************\n");
 	printf("%s\n", qr_info.qr_message);
-	printf("*** end QR payload ***\n\n");
-	
-	printf("*** QR proprieties ***\n");
-	printf("Points:\n (%d,%d), (%d,%d)\n (%d,%d), (%d,%d)\n ",qr_info.x0,qr_info.y0,qr_info.x1,qr_info.y1,qr_info.x2,qr_info.y2,qr_info.x3,qr_info.y3);
-	printf("Distance: %fmm\nPerspective Rotation: %f\nVertical Rotation: %f\nQR Center:%f\n",qr_info.distance, 			qr_info.perspective_rotation, qr_info.vertical_rotation, center);
-	printf("*** end QR proprieties ***\n");
-	
-	printf("*** Timestamps ***\n");
-	printf("Detected %ld milliseconds ago\n ", qr_info.timestamp_current.tv_usec-qr_info.timestamp_recognition.tv_usec);
-	printf("*** end Timestamps ***\n");
+	printf("************ END PAYLOAD ***************\n");
+
+    printf("\n");
+	printf("****************** END MESSAGE ********************\n");
 
 	close(sockfd);
 
