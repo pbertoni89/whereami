@@ -147,7 +147,7 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
     objectPoints.resize(imagePoints.size(),objectPoints[0]);
     
     double rms = calibrateCamera(objectPoints, imagePoints, imageSize, cameraMatrix,
-                    distCoeffs, rvecs, tvecs, flags|CV_CALIB_FIX_K4|CV_CALIB_FIX_K5);
+                    distCoeffs, rvecs, tvecs, flags|2048|4096);
                     ///*|CV_CALIB_FIX_K3*/|CV_CALIB_FIX_K4|CV_CALIB_FIX_K5);
     printf("RMS error reported by calibrateCamera: %g\n", rms);
     
@@ -218,8 +218,8 @@ void saveCameraParams( const string& filename,
             Mat r = bigmat(Range(i, i+1), Range(0,3));
             Mat t = bigmat(Range(i, i+1), Range(3,6));
 
-            CV_Assert(rvecs[i].rows == 3 && rvecs[i].cols == 1);
-            CV_Assert(tvecs[i].rows == 3 && tvecs[i].cols == 1);
+            //CV_Assert(rvecs[i].rows == 3 && rvecs[i].cols == 1);
+            //CV_Assert(tvecs[i].rows == 3 && tvecs[i].cols == 1);
             //*.t() is MatExpr (not Mat) so we can use assignment operator
             r = rvecs[i].t();
             t = tvecs[i].t();
@@ -467,10 +467,10 @@ int main( int argc, char** argv )
                     CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE);
                 break;
             case CIRCLES_GRID:
-                found = findCirclesGrid( view, boardSize, pointbuf );
+                //found = findCirclesGrid( view, boardSize, pointbuf );
                 break;
             case ASYMMETRIC_CIRCLES_GRID:
-                found = findCirclesGrid( view, boardSize, pointbuf, CALIB_CB_ASYMMETRIC_GRID );
+                //found = findCirclesGrid( view, boardSize, pointbuf, CALIB_CB_ASYMMETRIC_GRID );
                 break;
             default:
                 return fprintf( stderr, "Unknown pattern type\n" ), -1;
