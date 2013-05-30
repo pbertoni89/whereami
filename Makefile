@@ -43,7 +43,7 @@ libquirc.a: $(LIB_OBJ)
 	ranlib $@
 
 libquirc.so: $(LIB_SOBJ)
-	cc -O3 -shared -Wl, -dynamiclib -o $@ $^ -lm
+	cc -O3 -shared -dynamiclib -o $@ $^ -lm
 
 %.o: %.cpp
 	cc -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
