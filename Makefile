@@ -32,7 +32,7 @@ inspect: src/dbgutil.o src/inspect.o libquirc.a
 	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 calibration: src/calibration.o src/dbgutil.o libquirc.a
-	g++ -O3 -o $@ $^ `pkg-config --cflags --libs opencv`
+	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 client: src/client.o
 	g++ -O3 -o $@ $^ -lm

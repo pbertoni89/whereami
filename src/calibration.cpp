@@ -2,6 +2,7 @@
 #include <opencv/highgui.h>
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 #include <time.h>
 
 #include "quirc_internal.h"
@@ -522,7 +523,7 @@ int main( int argc, char** argv )
                 break;
         }
     }
-    destroyWindow("Image View");
+    cvDestroyWindow("Image View");
     if(mode == QR_CALIBRATED)
     {
         // close window, ask size_mm and distance_mm
