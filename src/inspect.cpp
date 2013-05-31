@@ -85,7 +85,7 @@ void extrapolate_qr_informations(const struct quirc_code *code){
   int x_center, y_center;
   x_center = (qr_info.x0+qr_info.x2)/2;
   y_center = (qr_info.y0+qr_info.y2)/2;
-  printf("Center coordinates: (%d, %d)",x_center, y_center);
+  printf("Center coordinates: (%d, %d)\n",x_center, y_center);
 
   // compute and print rotation
   int dx = qr_info.x1-qr_info.x0;
