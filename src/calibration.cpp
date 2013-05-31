@@ -13,7 +13,7 @@ using namespace std;
 
 const char * usage =
 " \nexample command line for calibration from a live feed.\n"
-"   calibration  -w 4 -h 5 -s 0.025 -o camera.yml -op -oe\n";
+"   calibration -w 9 -h 6 -o parameters.yml -op -oe\n";
 
 
 
