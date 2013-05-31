@@ -35,10 +35,10 @@ int frame_number = 0;
 QRInfos qr_info;
 
 // scale_factor = known_qr_distance_mm * pixels_measured / known_size_mm. It is 
-double scale_factor = 594; // 594 macbook and 815 philips
+double scale_factor;
 
 // the size in millimetres of the QR code
-double qr_size_mm = 188; // 50 on the iPhone
+double qr_size_mm;
 
 
 
@@ -57,6 +57,8 @@ int load_camera_params(char* filename, Mat& intrinsic_matrix, Mat& distortion_co
 
   intrinsic_matrix = (CvMat*)cvReadByName( fs,0,"camera_matrix");
   distortion_coeffs = (CvMat*)cvReadByName( fs,0,"distortion_coefficients");
+  scale_factor = cvReadIntByName( fs,0,"scale_factor");
+  qr_size_mm = cvReadIntByName( fs,0,"qr_size_mm");
 
   return 0;
 }

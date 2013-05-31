@@ -4,48 +4,32 @@
 #include <string.h>
 #include <time.h>
 
+#include "quirc_internal.h"
+#include "dbgutil.h"
+
+
 using namespace cv;
 using namespace std;
 
 const char * usage =
 " \nexample command line for calibration from a live feed.\n"
-"   calibration  -w 4 -h 5 -s 0.025 -o camera.yml -op -oe\n"
-" \n"
-" example command line for calibration from a list of stored images:\n"
-"   imagelist_creator image_list.xml *.png\n"
-"   calibration -w 4 -h 5 -s 0.025 -o camera.yml -op -oe image_list.xml\n"
-" where image_list.xml is the standard OpenCV XML/YAML\n"
-" use imagelist_creator to create the xml or yaml list\n"
-" file consisting of the list of strings, e.g.:\n"
-" \n"
-"<?xml version=\"1.0\"?>\n"
-"<opencv_storage>\n"
-"<images>\n"
-"view000.png\n"
-"view001.png\n"
-"<!-- view002.png -->\n"
-"view003.png\n"
-"view010.png\n"
-"one_extra_view.jpg\n"
-"</images>\n"
-"</opencv_storage>\n";
+"   calibration  -w 4 -h 5 -s 0.025 -o camera.yml -op -oe\n";
 
 
 
 
 const char* liveCaptureHelp =
-    "When the live video from camera is used as input, the following hot-keys may be used:\n"
+    "The following hot-keys may be used:\n"
         "  <ESC>, 'q' - quit the program\n"
         "  'g' - start capturing images\n"
         "  'u' - switch undistortion on/off\n";
 
 void help()
 {
-    printf( "This is a camera calibration sample.\n"
+    printf( "QRlocate camera calibration.\n"
         "Usage: calibration\n"
         "     -w <board_width>         # the number of inner corners per one of board dimension\n"
         "     -h <board_height>        # the number of inner corners per another board dimension\n"
-        "     [-pt <pattern>]          # the type of pattern: chessboard or circles' grid\n"
         "     [-n <number_of_frames>]  # the number of frames to use for calibration\n"
         "                              # (if not specified, it will be set to the number\n"
         "                              #  of board views actually available)\n"
@@ -59,21 +43,12 @@ void help()
         "     [-a <aspectRatio>]      # fix aspect ratio (fx/fy)\n"
         "     [-p]                     # fix the principal point at the center\n"
         "     [-v]                     # flip the captured images around the horizontal axis\n"
-        "     [-V]                     # use a video file, and not an image list, uses\n"
-        "                              # [input_data] string for the video file name\n"
-        "     [-su]                    # show undistorted images after calibration\n"
-        "     [input_data]             # input data, one of the following:\n"
-        "                              #  - text file with a list of the images of the board\n"
-        "                              #    the text file can be generated with imagelist_creator\n"
-        "                              #  - name of video file with a video of the board\n"
-        "                              # if input_data not specified, a live view from the camera is used\n"
         "\n" );
     printf("\n%s",usage);
     printf( "\n%s", liveCaptureHelp );
 }
 
-enum { DETECTION = 0, CAPTURING = 1, CALIBRATED = 2 };
-enum Pattern { CHESSBOARD, CIRCLES_GRID, ASYMMETRIC_CIRCLES_GRID };
+enum { DETECTION = 0, CAPTURING = 1, CALIBRATED = 2, QR_CALIBRATION = 3, QR_CALIBRATED = 4 };
 
 static double computeReprojectionErrors(
         const vector<vector<Point3f> >& objectPoints,
@@ -101,34 +76,18 @@ static double computeReprojectionErrors(
     return std::sqrt(totalErr/totalPoints);
 }
 
-static void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners, Pattern patternType = CHESSBOARD)
+static void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners)
 {
     corners.resize(0);
     
-    switch(patternType)
-    {
-      case CHESSBOARD:
-      case CIRCLES_GRID:
-        for( int i = 0; i < boardSize.height; i++ )
-            for( int j = 0; j < boardSize.width; j++ )
-                corners.push_back(Point3f(float(j*squareSize),
-                                          float(i*squareSize), 0));
-        break;
-
-      case ASYMMETRIC_CIRCLES_GRID:
-        for( int i = 0; i < boardSize.height; i++ )
-            for( int j = 0; j < boardSize.width; j++ )
-                corners.push_back(Point3f(float((2*j + i % 2)*squareSize),
-                                          float(i*squareSize), 0));
-        break;
-
-      default:
-        CV_Error(CV_StsBadArg, "Unknown pattern type\n");
-    }
+    for( int i = 0; i < boardSize.height; i++ )
+        for( int j = 0; j < boardSize.width; j++ )
+            corners.push_back(Point3f(float(j*squareSize),
+                                      float(i*squareSize), 0));
 }
 
 static bool runCalibration( vector<vector<Point2f> > imagePoints,
-                    Size imageSize, Size boardSize, Pattern patternType,
+                    Size imageSize, Size boardSize,
                     float squareSize, float aspectRatio,
                     int flags, Mat& cameraMatrix, Mat& distCoeffs,
                     vector<Mat>& rvecs, vector<Mat>& tvecs,
@@ -142,7 +101,7 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
     distCoeffs = Mat::zeros(8, 1, CV_64F);
     
     vector<vector<Point3f> > objectPoints(1);
-    calcChessboardCorners(boardSize, squareSize, objectPoints[0], patternType);
+    calcChessboardCorners(boardSize, squareSize, objectPoints[0]);
 
     objectPoints.resize(imagePoints.size(),objectPoints[0]);
     
@@ -167,7 +126,7 @@ void saveCameraParams( const string& filename,
                        const vector<Mat>& rvecs, const vector<Mat>& tvecs,
                        const vector<float>& reprojErrs,
                        const vector<vector<Point2f> >& imagePoints,
-                       double totalAvgErr )
+                       double totalAvgErr, int scale_factor, int qr_size_mm )
 {
     FileStorage fs( filename, FileStorage::WRITE );
     
@@ -239,6 +198,10 @@ void saveCameraParams( const string& filename,
         }
         fs << "image_points" << imagePtMat;
     }
+    
+    fs << "scale_factor" << scale_factor;
+    fs << "qr_size_mm" << qr_size_mm;
+    
 }
 
 static bool readStringList( const string& filename, vector<string>& l )
@@ -259,15 +222,25 @@ static bool readStringList( const string& filename, vector<string>& l )
 
 bool runAndSave(const string& outputFilename,
                 const vector<vector<Point2f> >& imagePoints,
-                Size imageSize, Size boardSize, Pattern patternType, float squareSize,
+                Size imageSize, Size boardSize, float squareSize,
                 float aspectRatio, int flags, Mat& cameraMatrix,
-                Mat& distCoeffs, bool writeExtrinsics, bool writePoints )
+                Mat& distCoeffs, bool writeExtrinsics, bool writePoints, int qr_size_px )
 {
     vector<Mat> rvecs, tvecs;
     vector<float> reprojErrs;
     double totalAvgErr = 0;
     
-    bool ok = runCalibration(imagePoints, imageSize, boardSize, patternType, squareSize,
+    // QR code dependant parameters
+    int qr_size_mm;
+    int known_distance;
+    cout << "QR code size (mm): ";
+    cin >> qr_size_mm;
+    cout << "QR code distance from source (mm): ";
+    cin >> known_distance;
+    int scale_factor = known_distance * qr_size_px / qr_size_mm;
+    
+    
+    bool ok = runCalibration(imagePoints, imageSize, boardSize, squareSize,
                    aspectRatio, flags, cameraMatrix, distCoeffs,
                    rvecs, tvecs, reprojErrs, totalAvgErr);
     printf("%s. avg reprojection error = %.2f\n",
@@ -282,7 +255,7 @@ bool runAndSave(const string& outputFilename,
                          writeExtrinsics ? tvecs : vector<Mat>(),
                          writeExtrinsics ? reprojErrs : vector<float>(),
                          writePoints ? imagePoints : vector<vector<Point2f> >(),
-                         totalAvgErr );
+                         totalAvgErr, scale_factor, qr_size_mm );
     return ok;
 }
 
@@ -295,7 +268,7 @@ int main( int argc, char** argv )
     const char* outputFilename = "out_camera_data.yml";
     const char* inputFilename = 0;
     
-    int i, nframes = 10;
+    int i, nframes = 15;
     bool writeExtrinsics = false, writePoints = false;
     bool undistortImage = false;
     int flags = 0;
@@ -309,14 +282,14 @@ int main( int argc, char** argv )
     int cameraId = 0;
     vector<vector<Point2f> > imagePoints;
     vector<string> imageList;
-    Pattern pattern = CHESSBOARD;
 
     if( argc < 2 )
     {
         help();
         return 0;
     }
-
+    
+    
     for( i = 1; i < argc; i++ )
     {
         const char* s = argv[i];
@@ -329,18 +302,6 @@ int main( int argc, char** argv )
         {
             if( sscanf( argv[++i], "%u", &boardSize.height ) != 1 || boardSize.height <= 0 )
                 return fprintf( stderr, "Invalid board height\n" ), -1;
-        }
-        else if( strcmp( s, "-pt" ) == 0 )
-        {
-            i++;
-            if( !strcmp( argv[i], "circles" ) )
-                pattern = CIRCLES_GRID;
-            else if( !strcmp( argv[i], "acircles" ) )
-                pattern = ASYMMETRIC_CIRCLES_GRID;
-            else if( !strcmp( argv[i], "chessboard" ) )
-                pattern = CHESSBOARD;
-            else
-                return fprintf( stderr, "Invalid pattern type: must be chessboard or circles\n" ), -1;
         }
         else if( strcmp( s, "-s" ) == 0 )
         {
@@ -427,6 +388,12 @@ int main( int argc, char** argv )
 
     namedWindow( "Image View", 1 );
 
+    bool qrfound = false;
+    int qr_pixel_size;
+    
+    struct quirc *q;
+    q = quirc_new();
+    
     for(i = 0;;i++)
     {
         Mat view, viewGray;
@@ -440,17 +407,7 @@ int main( int argc, char** argv )
         }
         else if( i < (int)imageList.size() )
             view = imread(imageList[i], 1);
-        
-        if(!view.data)
-        {
-            if( imagePoints.size() > 0 )
-                runAndSave(outputFilename, imagePoints, imageSize,
-                           boardSize, pattern, squareSize, aspectRatio,
-                           flags, cameraMatrix, distCoeffs,
-                           writeExtrinsics, writePoints);
-            break;
-        }
-        
+                
         imageSize = view.size();
 
         if( flipVertical )
@@ -460,26 +417,45 @@ int main( int argc, char** argv )
         cvtColor(view, viewGray, CV_BGR2GRAY); 
 
         bool found;
-        switch( pattern )
-        {
-            case CHESSBOARD:
-                found = findChessboardCorners( view, boardSize, pointbuf,
-                    CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE);
-                break;
-            case CIRCLES_GRID:
-                //found = findCirclesGrid( view, boardSize, pointbuf );
-                break;
-            case ASYMMETRIC_CIRCLES_GRID:
-                //found = findCirclesGrid( view, boardSize, pointbuf, CALIB_CB_ASYMMETRIC_GRID );
-                break;
-            default:
-                return fprintf( stderr, "Unknown pattern type\n" ), -1;
-        }
+        found = findChessboardCorners( view, boardSize, pointbuf,
+            CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE);
 
        // improve the found corners' coordinate accuracy
-        if( pattern == CHESSBOARD && found) cornerSubPix( viewGray, pointbuf, Size(11,11),
+        if( found) cornerSubPix( viewGray, pointbuf, Size(11,11),
             Size(-1,-1), TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
+            
+        if(mode == QR_CALIBRATION){
+            cv_to_quirc(q, viewGray);
+            quirc_end(q);
+  
+            int count = quirc_count(q);
+            if(count != 0){ // QR codes found.
+                struct quirc_code code;
+                struct quirc_data data;
+                quirc_decode_error_t err;
 
+                quirc_extract(q, 0, &code); // only recognize the first QR code found in the image
+                err = quirc_decode(&code, &data);
+  
+                if(err == 0){
+                    int x0 = code.corners[0].x;
+                    int y0 = code.corners[0].y;
+                    int x1 = code.corners[1].x;
+                    int y1 = code.corners[1].y;
+                    int x2 = code.corners[2].x;
+                    int y2 = code.corners[2].y;
+                    int x3 = code.corners[3].x;
+                    int y3 = code.corners[3].y;
+                    double side2 = sqrt(pow((double)x1-x2,2)+pow((double)y1-y2,2));
+                    double side4 = sqrt(pow((double)x3-x0,2)+pow((double)y3-y0,2));
+                    qr_pixel_size = (side2 + side4)/2;
+                    qrfound = true;
+                    mode = QR_CALIBRATED;
+                }
+            }
+            
+        }
+        
         if( mode == CAPTURING && found &&
            (!capture.isOpened() || clock() - prevTimestamp > delay*1e-3*CLOCKS_PER_SEC) )
         {
@@ -491,11 +467,13 @@ int main( int argc, char** argv )
         if(found)
             drawChessboardCorners( view, boardSize, Mat(pointbuf), found );
 
-        string msg = mode == CAPTURING ? "100/100" :
-            mode == CALIBRATED ? "Calibrated" : "Press 'g' to start";
+        string msg = mode == DETECTION ? "Press 'g' to start chessboard calibration" :
+                     mode == CAPTURING ? "100/100" :
+                     mode == CALIBRATED ? "Camera parameters acquired. Press 'g' to start QR calibration" : 
+                     mode == QR_CALIBRATED ? "Press ESC to end calibration." : "QR calibration in progress";
         int baseLine = 0;
-        Size textSize = getTextSize(msg, 1, 1, 1, &baseLine);        
-        Point textOrigin(view.cols - 2*textSize.width - 10, view.rows - 2*baseLine - 10);
+
+        Point textOrigin(50, view.rows - 2*baseLine - 10);
 
         if( mode == CAPTURING )
         {
@@ -506,7 +484,7 @@ int main( int argc, char** argv )
         }
 
         putText( view, msg, textOrigin, 1, 1,
-                 mode != CALIBRATED ? Scalar(0,0,255) : Scalar(0,255,0));
+                 mode != QR_CALIBRATED ? Scalar(0,0,255) : Scalar(0,255,0));
 
         if( blink )
             bitwise_not(view, view);
@@ -520,52 +498,39 @@ int main( int argc, char** argv )
         imshow("Image View", view);
         int key = 0xff & waitKey(capture.isOpened() ? 50 : 500);
 
-        if( (key & 255) == 27 )
+        if( (key & 255) == 27 ){
             break;
-        
-        if( key == 'u' && mode == CALIBRATED )
+        }
+        if( key == 'u' && mode >= CALIBRATED )
             undistortImage = !undistortImage;
 
         if( capture.isOpened() && key == 'g' )
         {
-            mode = CAPTURING;
-            imagePoints.clear();
+            switch(mode){
+                case DETECTION: imagePoints.clear(); mode = CAPTURING; break;
+                case CAPTURING: break;
+                case CALIBRATED: mode = QR_CALIBRATION; break;
+                case QR_CALIBRATION: break;
+                case QR_CALIBRATED: imagePoints.clear(); mode = CAPTURING; break;
+            }
         }
-
+        
         if( mode == CAPTURING && imagePoints.size() >= (unsigned)nframes )
         {
-            if( runAndSave(outputFilename, imagePoints, imageSize,
-                       boardSize, pattern, squareSize, aspectRatio,
-                       flags, cameraMatrix, distCoeffs,
-                       writeExtrinsics, writePoints))
-                mode = CALIBRATED;
-            else
-                mode = DETECTION;
+            mode = CALIBRATED;
             if( !capture.isOpened() )
                 break;
         }
     }
-    
-    if( !capture.isOpened() && showUndistorted )
+    destroyWindow("Image View");
+    if(mode == QR_CALIBRATED)
     {
-        Mat view, rview, map1, map2;
-        initUndistortRectifyMap(cameraMatrix, distCoeffs, Mat(),
-                                getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, imageSize, 1, imageSize, 0),
-                                imageSize, CV_16SC2, map1, map2);
-        
-        for( i = 0; i < (int)imageList.size(); i++ )
-        {
-            view = imread(imageList[i], 1);
-            if(!view.data)
-                continue;
-            //undistort( view, rview, cameraMatrix, distCoeffs, cameraMatrix );
-            remap(view, rview, map1, map2, INTER_LINEAR);
-            imshow("Image View", rview);
-            int c = 0xff & waitKey();
-            if( (c & 255) == 27 || c == 'q' || c == 'Q' )
-                break;
-        }
+        // close window, ask size_mm and distance_mm
+        runAndSave(outputFilename, imagePoints, imageSize,
+                   boardSize, squareSize, aspectRatio,
+                   flags, cameraMatrix, distCoeffs,
+                   writeExtrinsics, writePoints, qr_pixel_size);
     }
-                                                
+                                                    
     return 0;
 }
