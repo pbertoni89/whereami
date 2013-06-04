@@ -107,7 +107,7 @@ void extrapolate_qr_informations(const struct quirc_code *code){
        █ ▄▄▄ █ ▄ ▄██▀▄█▀█▄ █ 
        █ ███ █ ▀▄█▀▀ ▄ ▀▀█▄▄ 
        █▄▄▄▄▄█ █▄▀▄ ▀▀ ▀▄█▄▀ 
-     p3        side4        p4
+     p3        side4        p2
   */
   double side2 = sqrt(pow((double)qr_info.x1-qr_info.x2,2)+pow((double)qr_info.y1-qr_info.y2,2));
   double side4 = sqrt(pow((double)qr_info.x3-qr_info.x0,2)+pow((double)qr_info.y3-qr_info.y0,2));
