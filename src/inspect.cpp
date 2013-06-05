@@ -173,7 +173,7 @@ int process_qr(struct quirc *q){
   
   if(err == 0){
     while(pthread_mutex_lock(&mutex) != 0);
-    
+    qr_info.message_length = MAXLENGTH;
     extrapolate_qr_informations(&code);
     int payload_len = data.payload_len;
     int payloadTruncated = 0;
@@ -327,7 +327,7 @@ void* server_func(void* arg){
 }
 
 int main(int argc, char **argv){
-  qr_info.message_length = MAXLENGTH;
+  qr_info.message_length = -1;
   
   pthread_mutex_unlock(&mutex);
   if(argc < 2){

@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
 
 		if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
 			close(sockfd);
-			perror("client:onnect");
+			perror("client: connect");
 			continue;
 		}
 
@@ -90,25 +90,27 @@ int main(int argc, char *argv[]){
 	
 
 	printf("Received data from server...\n\n");
+	if(qr_info.message_length <= 0){
+	    printf("No QR code has been detected yet.\n");
+	} else{
+        printf("****************** BEGIN MESSAGE ******************\n");
+        printf("Length: %d, Payload Truncated: %s\n", qr_info.message_length, (qr_info.payload_truncated == 0? "no" : "yes"));
+        printf("Detected %ld seconds ago\n", qr_info.timestamp_current.tv_sec-qr_info.timestamp_recognition.tv_sec);
+        printf("\n");
 	
-	printf("****************** BEGIN MESSAGE ******************\n");
-	printf("Length: %d, Payload Truncated: %s\n", qr_info.message_length, (qr_info.payload_truncated == 0? "no" : "yes"));
-	printf("Detected %ld seconds ago\n", qr_info.timestamp_current.tv_sec-qr_info.timestamp_recognition.tv_sec);
-	printf("\n");
-    	
-	printf("************ PROPERTIES ****************\n");
-	printf("Points:\n (%d,%d), (%d,%d)\n (%d,%d), (%d,%d)\n",qr_info.x0,qr_info.y0,qr_info.x1,qr_info.y1,qr_info.x2,qr_info.y2,qr_info.x3,qr_info.y3);
-    printf("Center: \t\t(%d,%d)\n",x_center,y_center);
-	printf("Distance: \t\t%fmm\nPerspective Rotation: \t%f deg\nVertical Rotation: \t%f deg\n",qr_info.distance, qr_info.perspective_rotation, qr_info.vertical_rotation);
-	printf("************ END PROPERTIES ************\n\n");
+        printf("************ PROPERTIES ****************\n");
+        printf("Points:\n (%d,%d), (%d,%d)\n (%d,%d), (%d,%d)\n",qr_info.x0,qr_info.y0,qr_info.x1,qr_info.y1,qr_info.x2,qr_info.y2,qr_info.x3,qr_info.y3);
+        printf("Center: \t\t(%d,%d)\n",x_center,y_center);
+        printf("Distance: \t\t%fmm\nPerspective Rotation: \t%f deg\nVertical Rotation: \t%f deg\n",qr_info.distance, qr_info.perspective_rotation, qr_info.vertical_rotation);
+        printf("************ END PROPERTIES ************\n\n");
 
-	printf("************ PAYLOAD *******************\n");
-	printf("%s\n", qr_info.qr_message);
-	printf("************ END PAYLOAD ***************\n");
+        printf("************ PAYLOAD *******************\n");
+        printf("%s\n", qr_info.qr_message);
+        printf("************ END PAYLOAD ***************\n");
 
-    printf("\n");
-	printf("****************** END MESSAGE ********************\n");
-
+        printf("\n");
+        printf("****************** END MESSAGE ********************\n");
+    }
 	close(sockfd);
 
 	return 0;
