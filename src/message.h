@@ -12,9 +12,9 @@ typedef struct sqrinfos{
   int payload_truncated;
   char qr_message[MAXLENGTH+1];
   int x0,y0,x1,y1,x2,y2,x3,y3; // the coordinates of the four QR code points
-  double distance;
-  double perspective_rotation; // inclinazione rispetto all'osservatore (profondita')
-  double vertical_rotation; // inclinazione verticale
+  int distance;
+  int perspective_rotation; // inclinazione rispetto all'osservatore (profondita')
+  int vertical_rotation; // inclinazione verticale
   struct timeval timestamp_recognition;
   struct timeval timestamp_current;
 } QRInfos;

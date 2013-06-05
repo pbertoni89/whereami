@@ -35,10 +35,10 @@ int frame_number = 0;
 QRInfos qr_info;
 
 // scale_factor = known_qr_distance_mm * pixels_measured / known_size_mm. It is 
-double scale_factor;
+int scale_factor;
 
 // the size in millimetres of the QR code
-double qr_size_mm;
+int qr_size_mm;
 
 
 
@@ -90,8 +90,8 @@ void extrapolate_qr_informations(const struct quirc_code *code){
   // compute and print rotation
   int dx = qr_info.x1-qr_info.x0;
   int dy = qr_info.y1-qr_info.y0;
-  double angle = atan2(dy,dx)*180./CV_PI;
-  printf("Vertical rotation: %f\n",angle);
+  int angle = atan2(dy,dx)*180./CV_PI;
+  printf("Vertical rotation: %d deg\n",angle);
   qr_info.vertical_rotation = angle;
   angle += 180;
   /*
@@ -125,28 +125,28 @@ void extrapolate_qr_informations(const struct quirc_code *code){
     }*/
     
     // distance = scale_factor * qr_size_mm / side_pixel_size
-    double side4_distance = scale_factor*qr_size_mm/side4;
-    double side2_distance = scale_factor*qr_size_mm/side2;
+    int side4_distance = scale_factor*qr_size_mm/side4;
+    int side2_distance = scale_factor*qr_size_mm/side2;
 
     int qr_pixel_size = (side2 + side4)/2;
 
     const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
     int side_difference = side4-side2;
     side_difference = abs(side_difference) < threshold ? 0 : side_difference;
-    double perspective_rotation = asin((side2_distance-side4_distance)/qr_size_mm)*180./CV_PI;
+    int perspective_rotation = asin((side2_distance-side4_distance)/qr_size_mm)*180./CV_PI;
     
     qr_info.perspective_rotation = perspective_rotation;
     
     if(side_difference > 0){
-      printf("Facing right (%lf).\n",perspective_rotation);
+      printf("Facing right (%d deg).\n",perspective_rotation);
     } else if(side_difference < 0){
-      printf("Facing left (%lf).\n",perspective_rotation);
+      printf("Facing left (%d deg).\n",perspective_rotation);
     } else{
       printf("Facing front.\n");
     }
     
     qr_info.distance = (side2_distance+side4_distance)/2;
-    printf("Distance from the camera (%d px): %lf mm\n",qr_pixel_size,qr_info.distance);
+    printf("Distance from the camera (%d px): %d mm\n",qr_pixel_size,qr_info.distance);
     gettimeofday(&qr_info.timestamp_recognition,NULL);
   } else{
     ;

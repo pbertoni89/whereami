@@ -101,7 +101,7 @@ int main(int argc, char *argv[]){
         printf("************ PROPERTIES ****************\n");
         printf("Points:\n (%d,%d), (%d,%d)\n (%d,%d), (%d,%d)\n",qr_info.x0,qr_info.y0,qr_info.x1,qr_info.y1,qr_info.x2,qr_info.y2,qr_info.x3,qr_info.y3);
         printf("Center: \t\t(%d,%d)\n",x_center,y_center);
-        printf("Distance: \t\t%fmm\nPerspective Rotation: \t%f deg\nVertical Rotation: \t%f deg\n",qr_info.distance, qr_info.perspective_rotation, qr_info.vertical_rotation);
+        printf("Distance: \t\t%dmm\nPerspective Rotation: \t%d deg\nVertical Rotation: \t%d deg\n",qr_info.distance, qr_info.perspective_rotation, qr_info.vertical_rotation);
         printf("************ END PROPERTIES ************\n\n");
 
         printf("************ PAYLOAD *******************\n");
