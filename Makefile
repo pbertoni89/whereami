@@ -28,10 +28,10 @@ LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
 
 all: libquirc.so inspect calibration client
 
-inspect: src/dbgutil.o src/inspect.o libquirc.a
+inspect: src/util.o src/inspect.o libquirc.a
 	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
-calibration: src/calibration.o src/dbgutil.o libquirc.a
+calibration: src/util.o src/calibration.o libquirc.a
 	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 client: src/client.o
@@ -50,21 +50,6 @@ libquirc.so: $(LIB_SOBJ)
 
 %.lo: %.cpp
 	cc -O3 -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
-
-install: libquirc.a libquirc.so
-	install -o root -g root -m 0644 lib/quirc.h $(DESTDIR)$(PREFIX)/include
-	install -o root -g root -m 0644 libquirc.a $(DESTDIR)$(PREFIX)/lib
-	install -o root -g root -m 0755 libquirc.so \
-		$(DESTDIR)$(PREFIX)/lib/libquirc.so.$(LIB_VERSION)
-	ln -sf libquirc.so.$(LIB_VERSION) $(DESTDIR)$(PREFIX)/lib/$(LIB_SONAME)
-	ln -sf libquirc.so.$(LIB_VERSION) $(DESTDIR)$(PREFIX)/lib/libquirc.so
-
-uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/include/quirc.h
-	rm -f $(DESTDIR)$(PREFIX)/lib/libquirc.so.$(LIB_VERSION)
-	rm -f $(DESTDIR)$(PREFIX)/lib/$(LIB_SONAME)
-	rm -f $(DESTDIR)$(PREFIX)/lib/libquirc.so
-	rm -f $(DESTDIR)$(PREFIX)/lib/libquirc.a
 
 clean:
 	rm -f */*.o

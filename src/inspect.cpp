@@ -21,7 +21,7 @@ using namespace cv;
 #include <arpa/inet.h>
 
 #include "quirc_internal.h"
-#include "dbgutil.h"
+#include "util.h"
 #include "message.h"
 
 #define BACKLOG 10   // how many pending connections queue will hold
@@ -39,8 +39,6 @@ int scale_factor;
 
 // the size in millimetres of the QR code
 int qr_size_mm;
-
-
 
 void close_all_threads(){
   // one of the two threads caught an error and will now close all threads to terminate the program

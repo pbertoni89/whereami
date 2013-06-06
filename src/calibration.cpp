@@ -1,3 +1,7 @@
+/*
+ * calibration.cpp - used OpenCV calibration code as a starting point.
+*/
+
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <stdio.h>
@@ -6,7 +10,7 @@
 #include <time.h>
 
 #include "quirc_internal.h"
-#include "dbgutil.h"
+#include "util.h"
 
 
 using namespace cv;

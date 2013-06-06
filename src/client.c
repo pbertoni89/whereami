@@ -1,5 +1,5 @@
 /*
-** client.c -- a stream socket client demo
+** client.c -- a stream socket client, modified code from http://beej.us/guide/bgnet/examples/client.c
 */
 
 #include <stdio.h>
