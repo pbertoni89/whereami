@@ -325,6 +325,18 @@ void* server_func(void* arg){
 }
 
 int main(int argc, char **argv){
+	
+	if (argc == 1 || argc > 3) {
+		printf("inspect must be called with 1 or 2 parameters. Exiting\n");
+		exit(1);
+	}
+	int cameraId = 0;
+	const char* s = argv[2];
+	if ((argc == 3) && isdigit(s[0]))
+		//sscanf(s, "%d", &cameraId);
+		cameraId = atoi(s);
+	printf("camera id is %d\n", cameraId);
+		
   qr_info.message_length = -1;
   
   pthread_mutex_unlock(&mutex);
@@ -334,7 +346,7 @@ int main(int argc, char **argv){
   }
   file_path = argv[1];
   
-  capture.open(0);
+  capture.open(cameraId);
   if (!capture.isOpened()) {
     printf("Errore durante il caricamento del capture.\n");
     exit(1);
