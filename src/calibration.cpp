@@ -20,9 +20,6 @@ const char * usage =
 " \nexample command line for calibration from a live feed.\n"
 "   calibration -w 9 -h 6 -o parameters.yml -op -oe\n";
 
-
-
-
 const char* liveCaptureHelp =
     "The following hot-keys may be used:\n"
         "  <ESC>, 'q' - quit the program\n"
@@ -223,7 +220,6 @@ static bool readStringList( const string& filename, vector<string>& l )
         l.push_back((string)*it);
     return true;
 }
-
 
 bool runAndSave(const string& outputFilename,
                 const vector<vector<Point2f> >& imagePoints,
