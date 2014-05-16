@@ -288,7 +288,7 @@ int main( int argc, char** argv )
     vector<vector<Point2f> > imagePoints;
     vector<string> imageList;
 
-    if( argc < 2 )
+    if( argc < 2 ) 
     {
         help();
         return 0;
