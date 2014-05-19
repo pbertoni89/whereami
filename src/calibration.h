@@ -58,3 +58,5 @@ bool runAndSave(const string& outputFilename,
                 Size imageSize, Size boardSize, float squareSize,
                 float aspectRatio, int flags, Mat& cameraMatrix,
                 Mat& distCoeffs, bool writeExtrinsics, bool writePoints, int qr_size_px );
+
+int getOpt(int argc, char** argv, Size* boardSize, float* squareSize, int* nframes, float* aspectRatio, int* delay, int* flags, bool* writeExtrinsics, bool* writePoints, bool* flipVertical, bool* showUndistorted, bool* videofile, int* cameraId, const char* inputFilename, const char* outputFilename);

@@ -31,7 +31,7 @@ all: libquirc.so inspect calibration client
 inspect: src/util.o src/inspect.o libquirc.a
 	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
-calibration: src/util.o src/calibration.o libquirc.a
+calibration: src/util.o src/calibration.o  libquirc.a
 	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 client: src/client.o

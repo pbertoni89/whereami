@@ -1,6 +1,5 @@
 #include "inspect.h"
 
-/** Closes all thread launched at server side. ---------------------------------------------------*/
 void close_all_threads() {
   // one of the two threads caught an error and will now close all threads to terminate the program
   int rc;
@@ -8,7 +7,6 @@ void close_all_threads() {
   rc = pthread_kill(scanning_thread, SIGTERM);
 }
 
-/** Load camera parameters. ----------------------------------------------------------------------*/
 int load_camera_params(char* filename, Mat& intrinsic_matrix, Mat& distortion_coeffs) {
   CvFileStorage* fs = cvOpenFileStorage( filename, 0, CV_STORAGE_READ );
   if (fs==NULL){
@@ -23,7 +21,6 @@ int load_camera_params(char* filename, Mat& intrinsic_matrix, Mat& distortion_co
   return 0;
 }
 
-/** Extrapolate QR informations. -----------------------------------------------------------------*/
 void extrapolate_qr_informations(const struct quirc_code *code) {
   qr_info.x0 = code->corners[0].x;
   qr_info.y0 = code->corners[0].y;
@@ -93,27 +90,26 @@ void extrapolate_qr_informations(const struct quirc_code *code) {
     const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
     int side_difference = side4-side2;
     side_difference = abs(side_difference) < threshold ? 0 : side_difference;
-    int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
+    int perspective_rotation = asin((side2_distance-side4_distance)/qr_size_mm)*180./CV_PI;
     
     qr_info.perspective_rotation = perspective_rotation;
     
     if(side_difference > 0){
-      printf("Facing right (%d deg).\n", perspective_rotation);
+      printf("Facing right (%d deg).\n",perspective_rotation);
     } else if(side_difference < 0){
-      printf("Facing left (%d deg).\n", perspective_rotation);
+      printf("Facing left (%d deg).\n",perspective_rotation);
     } else{
       printf("Facing front.\n");
     }
     
-    qr_info.distance = (side2_distance + side4_distance)/2;
-    printf("Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
-    gettimeofday(&qr_info.timestamp_recognition, NULL);
+    qr_info.distance = (side2_distance+side4_distance)/2;
+    printf("Distance from the camera (%d px): %d mm\n",qr_pixel_size,qr_info.distance);
+    gettimeofday(&qr_info.timestamp_recognition,NULL);
   } else{
     ;
   }
 }
 
-/** Processes QR code. ---------------------------------------------------------------------------*/
 int process_qr(struct quirc *q) {
   
   quirc_end(q);
@@ -138,8 +134,8 @@ int process_qr(struct quirc *q) {
     extrapolate_qr_informations(&code);
     int payload_len = data.payload_len;
     int payloadTruncated = 0;
-    if(payload_len > MAXLENGTH-1){
-      // truncate long payloads
+    if(payload_len>MAXLENGTH-1){
+      // if the payload is too long I truncate it
       payload_len = MAXLENGTH-1;
       payloadTruncated = 1;
     }
@@ -152,71 +148,49 @@ int process_qr(struct quirc *q) {
     
     while(pthread_mutex_unlock(&mutex) != 0);
   }
+
   return 0;
 }
 
-/** Scanning function. ---------------------------------------------------------------------------*/
 void* scanning_func(void *arg) {
-	
-	const char* window_title = "Image View";
-	printf("Scanning thread started.\n");
-	struct quirc *q;
-	q = quirc_new();
-	if(!q){
-		perror("Can't create quirc object");
-		close_all_threads();
-	}
+  printf("Scanning thread started.\n");
+  struct quirc *q;
+  q = quirc_new();
+  if(!q){
+    perror("Can't create quirc object");
+    close_all_threads();
+  }
 
-	Mat intrinsic_matrix, distortion_coeffs;
-	load_camera_params(file_path, intrinsic_matrix, distortion_coeffs);
+  Mat intrinsic_matrix, distortion_coeffs;
+  load_camera_params(file_path, intrinsic_matrix, distortion_coeffs);
 
-	namedWindow(window_title, 1);
-
-	Mat frame, frame_undistort, frame_BW, frame_small;
-	while(1) {
-        
-        if( capture.isOpened() )
-        {
-            Mat frame0;
-            capture >> frame0;
-            frame0.copyTo(frame);
-        }
-
-		if (!frame.data)
-			printf("Error loading the frame.\n");
-			
-		Point textOrigin(50, frame.rows-10);
-        putText( frame, msg, textOrigin, 1, 1, Scalar(0,0,255) );
-                 
-		imshow(window_title, frame);
-
-		undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
-		cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
-		cv_to_quirc(q, frame_BW);
-		process_qr(q);
-		
-		int key = 0xff & waitKey(capture.isOpened() ? 50 : 500);
-        if( (key & 255) == 27 )
-           exit(0);
-	}
-	cvDestroyWindow(window_title);
-	quirc_destroy(q);
+  Mat frame, frame_undistort, frame_BW, frame_small;
+  while(1){
+    capture >> frame;
+    if (!frame.data) {
+      printf("Error loading the frame.\n");
+    }
+    undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
+    cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
+    cv_to_quirc(q, frame_BW);
+    process_qr(q);
+  }
+  quirc_destroy(q);
 }
 
-/** Signal "chld" handler. -----------------------------------------------------------------------*/
 void sigchld_handler(int s) {
-	while(waitpid(-1, NULL, WNOHANG) > 0);
+  while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-/** Get socket address, IPv4 xor IPv6. -----------------------------------------------------------*/
+// get sockaddr, IPv4 or IPv6
 void *get_in_addr(struct sockaddr *sa) {
-	if (sa->sa_family == AF_INET) {
-		return &(((struct sockaddr_in*)sa)->sin_addr);
-	}
+  if (sa->sa_family == AF_INET) {
+    return &(((struct sockaddr_in*)sa)->sin_addr);
+  }
+
   return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-/** Server function. -----------------------------------------------------------------------------*/
 void* server_func(void* arg) {
   printf("Server thread started.\n");
   
@@ -304,80 +278,46 @@ void* server_func(void* arg) {
   }
 }
 
-/** Prints help. ---------------------------------------------------------------------------------*/
-void help() {
-    printf( "QRlocate codes inspector.\n"
-        "Usage: inspect\n"
-        "\tcalibration_file.yml\t# the yml file where calibration data are stored\n"
-        "\t[-cf]\t\t\t# camera feedback through a window of its stream. default is false\n"
-        "\t[-id <camera_id>]\t# the camera ID for capture opening. default is 0\n"
-        "\n" );
-}
-
-/** Sets some things up. -------------------------------------------------------------------------*/
-void init_inspect() {
-	mutex = PTHREAD_MUTEX_INITIALIZER;
-	file_path = "out_camera_data.yml";
-	camera_id = 0;
-	camera_feedback = false;
-	frame_number = 0;
-	qr_info.message_length = -1;
-}
-
-/** Get argv parameters. -------------------------------------------------------------------------*/
-int getOpt(int cargc, char** cargv) {
-
-  if(cargc < 2){
-    help();
-    exit(1);
-  }
-  file_path = cargv[1];
-    
-  for(int i=2; i<cargc; i++)
-    {
-        const char* s = cargv[i];
-        if( strcmp( s, "-cf" ) == 0 )
-        {
-            camera_feedback = true;
-        }
-        else if( (s[0] != '-') && isdigit(s[0]) )
-        {
-			sscanf(s, "%d", &camera_id);
-        }
-        else
-            return fprintf( stderr, "Unknown option %s", s ), -1;
-    }	
-    return 0;	
-}
-
-/** MAIN function. -------------------------------------------------------------------------------*/
 int main(int argc, char **argv){
 	
-	init_inspect();
-	if ( getOpt(argc, argv) != 0)
-		return -1;
-  
-	pthread_mutex_unlock(&mutex);
-  
-	capture.open(0);//capture.open(camera_id);
-	if (!capture.isOpened()) {
-		printf("Error during capture opening.\n");
-		exit(1);
-	  }
-	  
-	int ret = pthread_create(&server_thread, NULL, &server_func, NULL);
-	if(ret != 0) {
-		printf("Error creating the server thread. [%s]\n", strerror(ret));
+	if (argc == 1 || argc > 3) {
+		printf("inspect must be called with 1 or 2 parameters. Exiting\n");
 		exit(1);
 	}
-	  
-	ret = pthread_create(&scanning_thread, NULL, &scanning_func, NULL);
-	if(ret != 0) {
-		printf("Error creating the scanner thread. [%s]\n", strerror(ret));
-		close_all_threads();
-		exit(1);
-	}
+	int cameraId = 0;
+	const char* s = argv[2];
+	if ((argc == 3) && isdigit(s[0]))
+		cameraId = atoi(s);
+		
+  qr_info.message_length = -1;
+  
+  pthread_mutex_unlock(&mutex);
+  if(argc < 2){
+    printf("Usage: ./inspect calibration_file.yml\n");
+    exit(1);
+  }
+  file_path = argv[1];
+  
+  capture.open(cameraId);
+  if (!capture.isOpened()) {
+    printf("Error during capture opening.\n");
+    exit(1);
+  }
+  
+  int ret = pthread_create(&server_thread, NULL, &server_func, NULL);
+  if(ret != 0){
+    printf("Error creating the server thread. [%s]\n", strerror(ret));
+    exit(1);
+  }
+  
+  ret = pthread_create(&scanning_thread, NULL, &scanning_func, NULL);
+  if(ret != 0){
+    printf("Error creating the scanner thread. [%s]\n", strerror(ret));
+    close_all_threads();
+    exit(1);
+  }
 
-	pthread_exit(NULL);
-	return 0;
+  pthread_exit(NULL);
+
+  return 0;
 }

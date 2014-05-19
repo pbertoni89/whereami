@@ -4,7 +4,6 @@
 
 #include "calibration.h"
 
-/** Prints help. ---------------------------------------------------------------------------------*/
 void help()
 {
     printf( "QRlocate camera calibration.\n"
@@ -29,7 +28,6 @@ void help()
     printf( "\n%s", liveCaptureHelp );
 }
 
-/** Compute Reprojection Errors. -----------------------------------------------------------------*/
 static double computeReprojectionErrors(
         const vector<vector<Point3f> >& objectPoints,
         const vector<vector<Point2f> >& imagePoints,
@@ -56,8 +54,7 @@ static double computeReprojectionErrors(
     return std::sqrt(totalErr/totalPoints);
 }
 
-/** Calculate chessboard corners. ----------------------------------------------------------------*/
-void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners)
+static void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners)
 {
     corners.resize(0);
     
@@ -67,7 +64,6 @@ void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& co
                                       float(i*squareSize), 0));
 }
 
-/** Runs calibration. ----------------------------------------------------------------------------*/
 static bool runCalibration( vector<vector<Point2f> > imagePoints,
                     Size imageSize, Size boardSize,
                     float squareSize, float aspectRatio,
@@ -100,7 +96,7 @@ static bool runCalibration( vector<vector<Point2f> > imagePoints,
     return ok;
 }
 
-/** Saves camera parameters. ---------------------------------------------------------------------*/
+
 void saveCameraParams( const string& filename,
                        Size imageSize, Size boardSize,
                        float squareSize, float aspectRatio, int flags,
@@ -186,7 +182,6 @@ void saveCameraParams( const string& filename,
     
 }
 
-/** Reads a list of strings. ---------------------------------------------------------------------*/
 static bool readStringList(const string& filename, vector<string>& l )
 {
     l.resize(0);
@@ -202,7 +197,6 @@ static bool readStringList(const string& filename, vector<string>& l )
     return true;
 }
 
-/** Runs and saves file. -------------------------------------------------------------------------*/
 bool runAndSave(const string& outputFilename,
                 const vector<vector<Point2f> >& imagePoints,
                 Size imageSize, Size boardSize, float squareSize,
@@ -242,103 +236,12 @@ bool runAndSave(const string& outputFilename,
     return ok;
 }
 
-/** Get argv parameters. -------------------------------------------------------------------------*/
-int getOpt(int argc, char** argv, Size* boardSize, float* squareSize, int* nframes, float* aspectRatio, int* delay, int* flags, bool* writeExtrinsics, bool* writePoints, bool* flipVertical, bool* showUndistorted, bool* videofile, int* cameraId, const char* inputFilename, const char* outputFilename) {
-
-  if(argc<2) 
-    {
-        help();
-        return 1;
-    }
-    
-    for(int i=1; i<argc; i++)
-    {
-        const char* s = argv[i];
-        if( strcmp(s, "-w" ) == 0 )
-        {
-            if( sscanf(argv[++i], "%u", &boardSize->width ) != 1 || boardSize->width <= 0 )
-                return fprintf( stderr, "Invalid board width\n" ), -1;
-        }
-        else if( strcmp( s, "-h" ) == 0 )
-        {
-            if( sscanf( argv[++i], "%u", &boardSize->height ) != 1 || boardSize->height <= 0 )
-                return fprintf( stderr, "Invalid board height\n" ), -1;
-        }
-        else if( strcmp( s, "-s" ) == 0 )
-        {
-            if( sscanf( argv[++i], "%f", squareSize ) != 1 || *squareSize <= 0 )
-                return fprintf( stderr, "Invalid board square width\n" ), -1;
-        }
-        else if( strcmp( s, "-n" ) == 0 )
-        {
-            if( sscanf( argv[++i], "%u", nframes ) != 1 || *nframes <= 3 )
-                return printf("Invalid number of images\n" ), -1;
-        }
-        else if( strcmp( s, "-a" ) == 0 )
-        {
-            if( sscanf( argv[++i], "%f", aspectRatio ) != 1 || *aspectRatio <= 0 )
-                return printf("Invalid aspect ratio\n" ), -1;
-            *flags |= CV_CALIB_FIX_ASPECT_RATIO;
-        }
-        else if( strcmp( s, "-d" ) == 0 )
-        {
-            if( sscanf( argv[++i], "%u", delay ) != 1 || *delay <= 0 )
-                return printf("Invalid delay\n" ), -1;
-        }
-        else if( strcmp( s, "-op" ) == 0 )
-        {
-			*writePoints = true;
-        }
-        else if( strcmp( s, "-oe" ) == 0 )
-        {
-            *writeExtrinsics = true;
-        }
-        else if( strcmp( s, "-zt" ) == 0 )
-        {
-            *flags |= CV_CALIB_ZERO_TANGENT_DIST;
-        }
-        else if( strcmp( s, "-p" ) == 0 )
-        {
-            *flags |= CV_CALIB_FIX_PRINCIPAL_POINT;
-        }
-        else if( strcmp( s, "-v" ) == 0 )
-        {
-            *flipVertical = true;
-        }
-        else if( strcmp( s, "-V" ) == 0 )
-        {
-            *videofile = true;
-        }
-        else if( strcmp( s, "-o" ) == 0 )
-        {	//DEPRECATE proposal
-            outputFilename = argv[++i];
-        }
-        else if( strcmp( s, "-su" ) == 0 )
-        {
-            *showUndistorted = true;
-        }
-        else if( s[0] != '-' )
-        {
-            if( isdigit(s[0]) )
-                sscanf(s, "%d", cameraId);
-            else //DEPRECATE proposal
-                inputFilename = s;
-        }
-        else
-            return fprintf( stderr, "Unknown option %s", s ), -1;
-    }	
-    return 0;	
-}
-
-/** MAIN function. -------------------------------------------------------------------------------*/
 int main( int argc, char** argv )
 {
     Size boardSize, imageSize;
     float squareSize = 1.f, aspectRatio = 1.f;
     Mat cameraMatrix, distCoeffs;
-    //DEPRECATE proposal
     const char* outputFilename = "out_camera_data.yml";
-    //DEPRECATE proposal
     const char* inputFilename = 0;
     
     int i, nframes = 15;
@@ -356,8 +259,88 @@ int main( int argc, char** argv )
     vector<vector<Point2f> > imagePoints;
     vector<string> imageList;
 
-	if ( getOpt(argc, argv, &boardSize, &squareSize, &nframes, &aspectRatio, &delay, &flags, &writeExtrinsics, &writePoints, &flipVertical, &showUndistorted, &videofile, &cameraId, inputFilename, outputFilename) != 0)
-		return -1;
+    if(argc<2) 
+    {
+        help();
+        return 0;
+    }
+    
+    for(i=1; i<argc; i++)
+    {
+        const char* s = argv[i];
+        if( strcmp(s, "-w" ) == 0 )
+        {
+            if( sscanf(argv[++i], "%u", &boardSize.width ) != 1 || boardSize.width <= 0 )
+                return fprintf( stderr, "Invalid board width\n" ), -1;
+        }
+        else if( strcmp( s, "-h" ) == 0 )
+        {
+            if( sscanf( argv[++i], "%u", &boardSize.height ) != 1 || boardSize.height <= 0 )
+                return fprintf( stderr, "Invalid board height\n" ), -1;
+        }
+        else if( strcmp( s, "-s" ) == 0 )
+        {
+            if( sscanf( argv[++i], "%f", &squareSize ) != 1 || squareSize <= 0 )
+                return fprintf( stderr, "Invalid board square width\n" ), -1;
+        }
+        else if( strcmp( s, "-n" ) == 0 )
+        {
+            if( sscanf( argv[++i], "%u", &nframes ) != 1 || nframes <= 3 )
+                return printf("Invalid number of images\n" ), -1;
+        }
+        else if( strcmp( s, "-a" ) == 0 )
+        {
+            if( sscanf( argv[++i], "%f", &aspectRatio ) != 1 || aspectRatio <= 0 )
+                return printf("Invalid aspect ratio\n" ), -1;
+            flags |= CV_CALIB_FIX_ASPECT_RATIO;
+        }
+        else if( strcmp( s, "-d" ) == 0 )
+        {
+            if( sscanf( argv[++i], "%u", &delay ) != 1 || delay <= 0 )
+                return printf("Invalid delay\n" ), -1;
+        }
+        else if( strcmp( s, "-op" ) == 0 )
+        {
+            writePoints = true;
+        }
+        else if( strcmp( s, "-oe" ) == 0 )
+        {
+            writeExtrinsics = true;
+        }
+        else if( strcmp( s, "-zt" ) == 0 )
+        {
+            flags |= CV_CALIB_ZERO_TANGENT_DIST;
+        }
+        else if( strcmp( s, "-p" ) == 0 )
+        {
+            flags |= CV_CALIB_FIX_PRINCIPAL_POINT;
+        }
+        else if( strcmp( s, "-v" ) == 0 )
+        {
+            flipVertical = true;
+        }
+        else if( strcmp( s, "-V" ) == 0 )
+        {
+            videofile = true;
+        }
+        else if( strcmp( s, "-o" ) == 0 )
+        {
+            outputFilename = argv[++i];
+        }
+        else if( strcmp( s, "-su" ) == 0 )
+        {
+            showUndistorted = true;
+        }
+        else if( s[0] != '-' )
+        {
+            if( isdigit(s[0]) )
+                sscanf(s, "%d", &cameraId);
+            else
+                inputFilename = s;
+        }
+        else
+            return fprintf( stderr, "Unknown option %s", s ), -1;
+    }
 
     if( inputFilename )
     {
@@ -376,9 +359,9 @@ int main( int argc, char** argv )
         nframes = (int)imageList.size();
 
     if( capture.isOpened() )
-        printf("%s", liveCaptureHelp);
+        printf( "%s", liveCaptureHelp );
 
-	namedWindow("Image View", 1);
+	namedWindow( "Image View", 1 );
 
     bool qrfound = false;
     int qr_pixel_size;
@@ -412,7 +395,7 @@ int main( int argc, char** argv )
         found = findChessboardCorners(view, boardSize, pointbuf,
             CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE);
 
-        // improve the found corners' coordinate accuracy
+       // improve the found corners' coordinate accuracy
         if(found) 
 			cornerSubPix(viewGray, pointbuf, Size(11,11), Size(-1,-1), TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1));
             

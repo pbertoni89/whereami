@@ -28,15 +28,16 @@ using namespace cv;
 
 pthread_t server_thread;
 pthread_t scanning_thread;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-char * file_path;
+pthread_mutex_t mutex;
+const string msg = "press ESC to abort the inspection.";
+char* file_path;
+int camera_id;
+bool camera_feedback;
 VideoCapture capture;
-int frame_number = 0;
+int frame_number;
 QRInfos qr_info;
-
 // scale_factor = known_qr_distance_mm * pixels_measured / known_size_mm. It is 
 int scale_factor;
-
 // the size in millimetres of the QR code
 int qr_size_mm;
 
@@ -44,7 +45,10 @@ void close_all_threads();
 int load_camera_params(char* filename, Mat& intrinsic_matrix, Mat& distortion_coeffs);
 void extrapolate_qr_informations(const struct quirc_code *code);
 int process_qr(struct quirc *q);
-void* scanning_func(void *arg);
+void* scanning_func(void* arg);
 void sigchld_handler(int s);
-void *get_in_addr(struct sockaddr *sa);
+void* get_in_addr(struct sockaddr *sa);
 void* server_func(void* arg);
+int getOpt(int cargc, char** cargv);
+void help();
+void init_inspect();

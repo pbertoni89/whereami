@@ -1,27 +1,7 @@
-/*
-** client.c -- a stream socket client, modified code from http://beej.us/guide/bgnet/examples/client.c
-*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include "message.h"
-
-#define PORT "9930" // the port client will be connecting to 
-#define MAXLENGTH 256
-#define MAXDATASIZE 512 // max number of bytes we can get at once 
-
+#include "client.h"
 
 // get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa){
+void *get_in_addr(struct sockaddr *sa) {
 	if (sa->sa_family == AF_INET) {
 		return &(((struct sockaddr_in*)sa)->sin_addr);
 	}
@@ -39,7 +19,7 @@ int main(int argc, char *argv[]){
 	char s[INET6_ADDRSTRLEN];
 
 	if (argc != 2) {
-	    fprintf(stderr,"usage: client hostname\n");
+	    fprintf(stderr, "usage: client hostname\n");
 	    exit(1);
 	}
 
@@ -85,8 +65,8 @@ int main(int argc, char *argv[]){
 	}
 
     int x_center, y_center;
-    x_center = (qr_info.x0+qr_info.x2)/2;
-    y_center = (qr_info.y0+qr_info.y2)/2;
+    x_center = (qr_info.x0 + qr_info.x2) / 2;
+    y_center = (qr_info.y0 + qr_info.y2) / 2;
 	
 
 	printf("Received data from server...\n\n");
