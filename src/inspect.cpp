@@ -73,10 +73,34 @@ void extrapolate_qr_informations(const struct quirc_code *code) {
   double side4 = sqrt(pow((double)qr_info.x3-qr_info.x0,2)+pow((double)qr_info.y3-qr_info.y0,2));
   
   // we only care of the QR code when it is correctly rotated (135 to 225 degrees)
-  if(angle < 45 || angle > 360-45){
-    ;
-  } else if(angle >= 45 && angle < 45+90){
-    ;
+  if(angle < 45 || angle > 360-45){  //--------------------------------------------------------------------
+			int side4_distance = scale_factor*qr_size_mm/side4;
+			int side2_distance = scale_factor*qr_size_mm/side2;
+
+			int qr_pixel_size = (side2 + side4)/2;
+
+			const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
+			int side_difference = side4-side2;
+			side_difference = abs(side_difference) < threshold ? 0 : side_difference;
+			int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
+			
+			qr_info.perspective_rotation = perspective_rotation;
+			qr_info.distance = (side2_distance + side4_distance)/2;
+			printf("[0-45]U[315-360]: Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
+  } else if(angle >= 45 && angle < 45+90){ //------------------------------------------------------------------
+			int side4_distance = scale_factor*qr_size_mm/side4;
+			int side2_distance = scale_factor*qr_size_mm/side2;
+
+			int qr_pixel_size = (side2 + side4)/2;
+
+			const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
+			int side_difference = side4-side2;
+			side_difference = abs(side_difference) < threshold ? 0 : side_difference;
+			int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
+			
+			qr_info.perspective_rotation = perspective_rotation;
+			qr_info.distance = (side2_distance + side4_distance)/2;
+			printf("[45-135]: Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
   } else if (angle >= 45+90 && angle < 45+180){
     /*if(side3>side1){
       printf("Facing upwards.\n");
@@ -108,8 +132,20 @@ void extrapolate_qr_informations(const struct quirc_code *code) {
     qr_info.distance = (side2_distance + side4_distance)/2;
     printf("Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
     gettimeofday(&qr_info.timestamp_recognition, NULL);
-  } else{
-    ;
+  } 
+  else{ //-----------------------------------------------------------------------------------------
+	  int side4_distance = scale_factor*qr_size_mm/side4;
+    int side2_distance = scale_factor*qr_size_mm/side2;
+
+    int qr_pixel_size = (side2 + side4)/2;
+
+    const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
+    int side_difference = side4-side2;
+    side_difference = abs(side_difference) < threshold ? 0 : side_difference;
+    int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
+    
+    qr_info.perspective_rotation = perspective_rotation;
+    printf("[225-315]: Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
   }
 }
 
@@ -359,7 +395,7 @@ int main(int argc, char **argv){
   
 	pthread_mutex_unlock(&mutex);
   
-	capture.open(0);//capture.open(camera_id);
+	capture.open(camera_id);
 	if (!capture.isOpened()) {
 		printf("Error during capture opening.\n");
 		exit(1);
