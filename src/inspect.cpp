@@ -49,10 +49,8 @@ void calcPerspective_Distance(double side2, double side4) {
 	static double threshold = qr_pixel_size/double(THRESH); // progressive based on how far the QR code is (near -> increase).
 	int s_LR_dist_delta = s2_dist - s4_dist;
 	
-	if (abs(s_LR_dist_delta) < threshold) {
+	if (abs(s_LR_dist_delta) < threshold)
 		s_LR_dist_delta = 0;
-		printf("under threshold!\n");
-		}
 	else
 		s_LR_dist_delta;
 		
@@ -75,7 +73,7 @@ void calcCenter_VerticalRot() {
 
 void printQRInfo() {
 	printf("*********************************************\n");
-    printf("Perspective rotation\t\t%f\n", qr_info.perspective_rotation);
+    printf("Perspective rotation\t\t%d\n", qr_info.perspective_rotation);
     printf("Distance from camera\t\t%d\n", qr_info.distance);
     printf("Payload\t\t%s\n ",qr_info.qr_message);
     printf("*********************************************\n\n");

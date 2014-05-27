@@ -29,10 +29,12 @@ double average(double a, double b) {
 }
 
 double getAngleV(int dy, int dx) {
-	return atan2((double)dy, (double)dx)*((double)PIDEG/(double)CV_PI);
+	static double scale = (double)PIDEG / (double) CV_PI;
+	return (atan2((double)dy, (double)dx)*scale);
 }
 double getAngleLR(int dx, int dim) {
-	double 
-	return asin((double)dx/(double)dim)*((double)PIDEG/(double)CV_PI);
+	double angle = (double)dx / (double) dim;
+	static double scale = (double)PIDEG / (double) CV_PI;
+	return (asin(angle)*scale);
 }
 
