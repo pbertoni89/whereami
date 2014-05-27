@@ -10,52 +10,84 @@ void close_all_threads() {
 
 /** Load camera parameters. ----------------------------------------------------------------------*/
 int load_camera_params(char* filename, Mat& intrinsic_matrix, Mat& distortion_coeffs) {
-  CvFileStorage* fs = cvOpenFileStorage( filename, 0, CV_STORAGE_READ );
+  CvFileStorage* fs = cvOpenFileStorage(filename, 0, CV_STORAGE_READ);
   if (fs==NULL){
     return 1;
   }
 
-  intrinsic_matrix = (CvMat*)cvReadByName( fs,0,"camera_matrix");
-  distortion_coeffs = (CvMat*)cvReadByName( fs,0,"distortion_coefficients");
-  scale_factor = cvReadIntByName( fs,0,"scale_factor");
-  qr_size_mm = cvReadIntByName( fs,0,"qr_size_mm");
+  intrinsic_matrix = (CvMat*)cvReadByName(fs, 0, "camera_matrix");
+  distortion_coeffs = (CvMat*)cvReadByName(fs, 0, "distortion_coefficients");
+  scale_factor = cvReadIntByName(fs, 0, "scale_factor");
+  qr_size_mm = cvReadIntByName(fs, 0, "qr_size_mm");
 
   return 0;
 }
 
+void copyCorners(const struct quirc_code *code) {
+	qr_info.x0 = code->corners[0].x;
+	qr_info.y0 = code->corners[0].y;
+	qr_info.x1 = code->corners[1].x;
+	qr_info.y1 = code->corners[1].y;
+	qr_info.x2 = code->corners[2].x;
+	qr_info.y2 = code->corners[2].y;
+	qr_info.x3 = code->corners[3].x;
+	qr_info.y3 = code->corners[3].y;
+}
+
+int scale(double side) {
+	return scale_factor*qr_size_mm/side;
+}
+
+/** Calculate perspective rotation and distance of the QR. ---------------------------------------*/
+void calcPerspective_Distance(double side2, double side4) {
+
+	int qr_pixel_size = average(side2, side4);
+	int s2_dist = scale(side2);
+	int s4_dist = scale(side4);
+	qr_info.distance = average(s2_dist, s4_dist);
+
+	static double threshold = qr_pixel_size/double(THRESH); // progressive based on how far the QR code is (near -> increase).
+	int s_LR_dist_delta = s2_dist - s4_dist;
+	
+	if (abs(s_LR_dist_delta) < threshold) {
+		s_LR_dist_delta = 0;
+		printf("under threshold!\n");
+		}
+	else
+		s_LR_dist_delta;
+		
+	qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, qr_size_mm); 
+}
+
+void calcCenter_VerticalRot() {
+	
+	int x_center = average(qr_info.x0, qr_info.x2);
+	int y_center = average(qr_info.y0, qr_info.y2);
+	#ifdef DEBUG
+		printf("QR number: %d\n", qr_number);
+		//printf("Center coordinates: (%d, %d)\n", x_center, y_center);
+	#endif
+
+	int dx = qr_info.x1 - qr_info.x0;
+	int dy = qr_info.y1 - qr_info.y0;
+	qr_info.vertical_rotation = getAngleV(dy, dx) + PIDEG;
+}
+
+void printQRInfo() {
+	printf("*********************************************\n");
+    printf("Perspective rotation\t\t%f\n", qr_info.perspective_rotation);
+    printf("Distance from camera\t\t%d\n", qr_info.distance);
+    printf("Payload\t\t%s\n ",qr_info.qr_message);
+    printf("*********************************************\n\n");
+}
+
 /** Extrapolate QR informations. -----------------------------------------------------------------*/
 void extrapolate_qr_informations(const struct quirc_code *code) {
-  qr_info.x0 = code->corners[0].x;
-  qr_info.y0 = code->corners[0].y;
-  qr_info.x1 = code->corners[1].x;
-  qr_info.y1 = code->corners[1].y;
-  qr_info.x2 = code->corners[2].x;
-  qr_info.y2 = code->corners[2].y;
-  qr_info.x3 = code->corners[3].x;
-  qr_info.y3 = code->corners[3].y;
-  
-  int n_points = 4;
-  CvPoint *points;
-  points = (CvPoint*) malloc(sizeof(CvPoint)*n_points);
-  for(int i=0; i < n_points; i++){
-    points[i] = cvPoint(code->corners[i].x,code->corners[i].y);
-  }
-  
-  // compute center coordinates
-  int x_center, y_center;
-  x_center = (qr_info.x0+qr_info.x2)/2;
-  y_center = (qr_info.y0+qr_info.y2)/2;
-  printf("Center coordinates: (%d, %d)\n",x_center, y_center);
 
-  // compute and print rotation
-  int dx = qr_info.x1-qr_info.x0;
-  int dy = qr_info.y1-qr_info.y0;
-  int angle = atan2(dy,dx)*180./CV_PI;
-  printf("Vertical rotation: %d deg\n",angle);
-  qr_info.vertical_rotation = angle;
-  angle += 180;
-  /*
-     p0        side1        p1
+	copyCorners(code);
+	calcCenter_VerticalRot();
+	
+	/* p0        side1        p1
        ▄▄▄▄▄▄▄ ▄▄▄▄▄ ▄▄▄▄▄▄▄ 
        █ ▄▄▄ █  █▄▀  █ ▄▄▄ █ 
     s  █ ███ █  ▀█▀▄ █ ███ █ s
@@ -67,86 +99,28 @@ void extrapolate_qr_informations(const struct quirc_code *code) {
        █ ▄▄▄ █ ▄ ▄██▀▄█▀█▄ █ 
        █ ███ █ ▀▄█▀▀ ▄ ▀▀█▄▄ 
        █▄▄▄▄▄█ █▄▀▄ ▀▀ ▀▄█▄▀ 
-     p3        side4        p2
-  */
-  double side2 = sqrt(pow((double)qr_info.x1-qr_info.x2,2)+pow((double)qr_info.y1-qr_info.y2,2));
-  double side4 = sqrt(pow((double)qr_info.x3-qr_info.x0,2)+pow((double)qr_info.y3-qr_info.y0,2));
+     p3        side3        p2    */
+     
+	double side2 = pitagora((double) (qr_info.x1 - qr_info.x2), (double)(qr_info.y1 - qr_info.y2));
+	double side4 = pitagora((double) (qr_info.x3 - qr_info.x0), (double)(qr_info.y3 - qr_info.y0));
   
-  // we only care of the QR code when it is correctly rotated (135 to 225 degrees)
-  if(angle < 45 || angle > 360-45){  //--------------------------------------------------------------------
-			int side4_distance = scale_factor*qr_size_mm/side4;
-			int side2_distance = scale_factor*qr_size_mm/side2;
+	calcPerspective_Distance(side2, side4);
+	
+	gettimeofday(&qr_info.timestamp_recognition, NULL);
+}
 
-			int qr_pixel_size = (side2 + side4)/2;
+/** Copies payload from data to info structure. --------------------------------------------------*/
+void copyPayload(quirc_data *data) {
 
-			const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
-			int side_difference = side4-side2;
-			side_difference = abs(side_difference) < threshold ? 0 : side_difference;
-			int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
-			
-			qr_info.perspective_rotation = perspective_rotation;
-			qr_info.distance = (side2_distance + side4_distance)/2;
-			printf("[0-45]U[315-360]: Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
-  } else if(angle >= 45 && angle < 45+90){ //------------------------------------------------------------------
-			int side4_distance = scale_factor*qr_size_mm/side4;
-			int side2_distance = scale_factor*qr_size_mm/side2;
-
-			int qr_pixel_size = (side2 + side4)/2;
-
-			const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
-			int side_difference = side4-side2;
-			side_difference = abs(side_difference) < threshold ? 0 : side_difference;
-			int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
-			
-			qr_info.perspective_rotation = perspective_rotation;
-			qr_info.distance = (side2_distance + side4_distance)/2;
-			printf("[45-135]: Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
-  } else if (angle >= 45+90 && angle < 45+180){
-    /*if(side3>side1){
-      printf("Facing upwards.\n");
-    } else{
-      printf("Facing downwards.\n");
-    }*/
-    
-    // distance = scale_factor * qr_size_mm / side_pixel_size
-    int side4_distance = scale_factor*qr_size_mm/side4;
-    int side2_distance = scale_factor*qr_size_mm/side2;
-
-    int qr_pixel_size = (side2 + side4)/2;
-
-    const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
-    int side_difference = side4-side2;
-    side_difference = abs(side_difference) < threshold ? 0 : side_difference;
-    int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
-    
-    qr_info.perspective_rotation = perspective_rotation;
-    
-    if(side_difference > 0){
-      printf("Facing right (%d deg).\n", perspective_rotation);
-    } else if(side_difference < 0){
-      printf("Facing left (%d deg).\n", perspective_rotation);
-    } else{
-      printf("Facing front.\n");
+	int payload_len = data->payload_len;
+    int payloadTruncated = 0;
+    if(payload_len > MAXLENGTH-1){
+      payload_len = MAXLENGTH-1;  // truncate long payloads
+      payloadTruncated = 1;
     }
-    
-    qr_info.distance = (side2_distance + side4_distance)/2;
-    printf("Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
-    gettimeofday(&qr_info.timestamp_recognition, NULL);
-  } 
-  else{ //-----------------------------------------------------------------------------------------
-	  int side4_distance = scale_factor*qr_size_mm/side4;
-    int side2_distance = scale_factor*qr_size_mm/side2;
-
-    int qr_pixel_size = (side2 + side4)/2;
-
-    const int threshold = qr_pixel_size/13; // progressive based on how far the QR code is (near -> increase).
-    int side_difference = side4-side2;
-    side_difference = abs(side_difference) < threshold ? 0 : side_difference;
-    int perspective_rotation = asin((side2_distance - side4_distance)/qr_size_mm)*180./CV_PI;
-    
-    qr_info.perspective_rotation = perspective_rotation;
-    printf("[225-315]: Distance from the camera (%d px): %d mm\n", qr_pixel_size, qr_info.distance);
-  }
+    qr_info.payload_truncated = payloadTruncated;
+    memcpy (qr_info.qr_message, data->payload, payload_len+1 ); // copy the '\0' too.
+	qr_info.qr_message[MAXLENGTH] = '\0';
 }
 
 /** Processes QR code. ---------------------------------------------------------------------------*/
@@ -159,7 +133,8 @@ int process_qr(struct quirc *q) {
     return 0;
   }
   
-  // printf("%d QR-codes found. Analyzin the first one. (frame_number: %d)", count, ++frame_number);
+  qr_number++;
+  //printf("%d QR-codes found. Analyzin the first one. (frame_number: %d)", count, ++frame_number);
 
   struct quirc_code code;
   struct quirc_data data;
@@ -169,24 +144,16 @@ int process_qr(struct quirc *q) {
   err = quirc_decode(&code, &data);
   
   if(err == 0){
-    while(pthread_mutex_lock(&mutex) != 0);
+    while(pthread_mutex_lock(&mutex) != 0)
+	{ ; }
+	
     qr_info.message_length = MAXLENGTH;
     extrapolate_qr_informations(&code);
-    int payload_len = data.payload_len;
-    int payloadTruncated = 0;
-    if(payload_len > MAXLENGTH-1){
-      // truncate long payloads
-      payload_len = MAXLENGTH-1;
-      payloadTruncated = 1;
-    }
-    qr_info.payload_truncated = payloadTruncated;
-    memcpy ( qr_info.qr_message, data.payload, payload_len+1 ); // copy the '\0' too.
-
-    qr_info.qr_message[MAXLENGTH] = '\0';
-    printf("Payload: %s\n ",qr_info.qr_message);
-    printf("\n");
+    copyPayload(&data);
+    printQRInfo(); // the only excerpt of a QR that should be printed in a release.
     
-    while(pthread_mutex_unlock(&mutex) != 0);
+    while(pthread_mutex_unlock(&mutex) != 0)
+    { ; }
   }
   return 0;
 }
@@ -194,49 +161,46 @@ int process_qr(struct quirc *q) {
 /** Scanning function. ---------------------------------------------------------------------------*/
 void* scanning_func(void *arg) {
 	
-	const char* window_title = "Image View";
 	printf("Scanning thread started.\n");
 	struct quirc *q;
-	q = quirc_new();
-	if(!q){
-		perror("Can't create quirc object");
-		close_all_threads();
-	}
-
 	Mat intrinsic_matrix, distortion_coeffs;
 	load_camera_params(file_path, intrinsic_matrix, distortion_coeffs);
 
 	namedWindow(window_title, 1);
 
-	Mat frame, frame_undistort, frame_BW, frame_small;
+	Mat frame, frame_undistort, frame_BW;
 	while(1) {
         
-        if( capture.isOpened() )
-        {
-            Mat frame0;
-            capture >> frame0;
-            frame0.copyTo(frame);
-        }
+        if( !capture.isOpened() )
+			{ perror("Error opening capture.\n"); close_all_threads(); }
 
-		if (!frame.data)
-			printf("Error loading the frame.\n");
+		Mat frame0;
+        capture >> frame0;
+        frame0.copyTo(frame);
+
+		if (!frame.data) 
+			{ perror("Error loading the frame.\n"); close_all_threads(); }
 			
 		Point textOrigin(50, frame.rows-10);
-        putText( frame, msg, textOrigin, 1, 1, Scalar(0,0,255) );
+        putText(frame, msg, textOrigin, 1, 1, Scalar(0,0,255) );
                  
 		imshow(window_title, frame);
 
 		undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
 		cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
+		
+		q = quirc_new();
+		if(!q)
+			{ perror("Can't create quirc object"); close_all_threads(); }
 		cv_to_quirc(q, frame_BW);
 		process_qr(q);
+		quirc_destroy(q);
 		
 		int key = 0xff & waitKey(capture.isOpened() ? 50 : 500);
         if( (key & 255) == 27 )
            exit(0);
 	}
 	cvDestroyWindow(window_title);
-	quirc_destroy(q);
 }
 
 /** Signal "chld" handler. -----------------------------------------------------------------------*/
@@ -357,6 +321,7 @@ void init_inspect() {
 	camera_id = 0;
 	camera_feedback = false;
 	frame_number = 0;
+	qr_number = 0;
 	qr_info.message_length = -1;
 }
 
@@ -390,7 +355,7 @@ int getOpt(int cargc, char** cargv) {
 int main(int argc, char **argv){
 	
 	init_inspect();
-	if ( getOpt(argc, argv) != 0)
+	if (getOpt(argc, argv) != 0)
 		return -1;
   
 	pthread_mutex_unlock(&mutex);

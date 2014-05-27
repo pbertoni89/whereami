@@ -25,20 +25,26 @@ using namespace cv;
 #include "message.h"
 
 #define BACKLOG 10   // how many pending connections queue will hold
+#define THRESH 13 	 // mysterious magic number.
+#define LBOUND 135	 // minimum angle of vertical rotation allowed. set to 0 to disable.
+#define UBOUND 225	 // maximum angle of vertical rotation allowed. set to 359 to disable.
+#define DEBUG		 // it will help us. Comment for excluding preprocessing.
 
 pthread_t server_thread;
 pthread_t scanning_thread;
 pthread_mutex_t mutex;
 const string msg = "press ESC to abort the inspection.";
+const char* window_title = "Camera Source";
 char* file_path;
 int camera_id;
 bool camera_feedback;
 VideoCapture capture;
 int frame_number;
+int qr_number; //in the future it will be increased only when a DIFFERENT QR is found
 QRInfos qr_info;
 // scale_factor = known_qr_distance_mm * pixels_measured / known_size_mm. It is 
 int scale_factor;
-// the size in millimetres of the QR code
+// the size in millimetres of the QR code acquired during CALIBRATION
 int qr_size_mm;
 
 void close_all_threads();
@@ -52,3 +58,7 @@ void* server_func(void* arg);
 int getOpt(int cargc, char** cargv);
 void help();
 void init_inspect();
+void calcPerspective_Distance(double side_a, double side_b);
+void calcCenter_VerticalRot();
+void copyPayload(quirc_data *data);
+void printQRInfo();
