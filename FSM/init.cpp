@@ -23,6 +23,7 @@ using namespace std;
 //  necessita della macchina per potergli settare lo stato
 	State* INIT::exec()
 	{
+	  system("morgulservo -- -90");
 	  camera_angle=-90;
 	  QR_found=0;
 	  delete this;

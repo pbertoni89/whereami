@@ -5,9 +5,8 @@ using namespace std;
 
 Machine::Machine()
 {
-  current = new INIT();
   cout << "Machine built! \n";
-  QR_found=2;
+  current = new INIT();
 }
 
 void Machine::setCurrent(State *s)
@@ -16,7 +15,7 @@ void Machine::setCurrent(State *s)
 }
 
 
-void Machine::move()
+void Machine::start()
 {
   setCurrent(current->exec());
 }

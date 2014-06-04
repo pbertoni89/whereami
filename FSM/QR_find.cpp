@@ -23,9 +23,9 @@ using namespace std;
 //  necessita della macchina per potergli settare lo stato
 	State* QR_FIND::exec()
 	{
-
+      cout << "   arrivato in QR_FIND\n";
 	  delete this;
-	  return new QR_CENTER();
+	  return NULL;
 	}
 
 

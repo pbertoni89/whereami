@@ -13,6 +13,8 @@
 #include "QR_find.h"
 #endif
 
+#include <stdlib.h>     /* system, NULL, EXIT_FAILURE */
+
 class INIT: public State
 {
   public:

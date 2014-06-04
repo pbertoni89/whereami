@@ -14,7 +14,7 @@ class Machine
   public:
     State* current;
     Machine();
-    void move();
+    void start();
     
 };
 
