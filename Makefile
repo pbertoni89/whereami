@@ -25,17 +25,19 @@ LIB_OBJ = \
     lib/quirc.o \
     lib/version_db.o
 LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
+OPT=
+#-O3
 
-all: libquirc.so inspect calibration client
+all: libquirc.so whereami calibration client
 
-inspect: src/util.o src/inspect.o libquirc.a
-	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
+whereami: src/util.o libquirc.a src/worldKB.o src/threadonmutex.o src/server.o src/explorer.o src/whereami.o
+	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 calibration: src/util.o src/calibration.o  libquirc.a
-	g++ -O3 -o $@ $^ -lm `pkg-config --cflags --libs opencv`
+	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 client: src/client.o
-	g++ -O3 -o $@ $^ -lm
+	g++ $(OPT) -o $@ $^ -lm
 
 libquirc.a: $(LIB_OBJ)
 	rm -f $@
@@ -43,13 +45,14 @@ libquirc.a: $(LIB_OBJ)
 	ranlib $@
 
 libquirc.so: $(LIB_SOBJ)
-	cc -O3 -shared -dynamiclib -o $@ $^ -lm
+	cc $(OPT) -shared -dynamiclib -o $@ $^ -lm
 
 %.o: %.cpp
-	cc -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
+	#cc $(OPT) $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
+	g++ -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
 
 %.lo: %.cpp
-	cc -O3 -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
+	cc $(OPT) -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
 
 clean:
 	rm -f */*.o
@@ -57,6 +60,6 @@ clean:
 	rm -f */*.lo
 	rm -f libquirc.a
 	rm -f libquirc.so
-	rm -f inspect
+	rm -f whereami
 	rm -f calibration
 	rm -f client

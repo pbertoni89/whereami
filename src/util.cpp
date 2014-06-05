@@ -37,4 +37,3 @@ double getAngleLR(int dx, int dim) {
 	static double scale = (double)PIDEG / (double) CV_PI;
 	return (asin(angle)*scale);
 }
-

@@ -15,4 +15,5 @@ double pitagora(double a, double b);
 double average(double a, double b);
 double getAngleV(int dy, int dx);
 double getAngleLR(int dx, int dim);
+
 #endif
