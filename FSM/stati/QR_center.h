@@ -9,6 +9,6 @@ class QR_CENTER: public State
   public:
     QR_CENTER();
     ~QR_CENTER();
-    State* exec();
+    State* executeState();
 };
 

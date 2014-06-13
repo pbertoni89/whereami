@@ -17,7 +17,7 @@ using namespace std;
 
 // transizione che va da ON a OFF
 //  necessita della macchina per potergli settare lo stato
-	State* CHECK_STATUS::exec()
+	State* CHECK_STATUS::executeState()
 	{
 	  delete this;
 	  return new CHECK_STATUS();

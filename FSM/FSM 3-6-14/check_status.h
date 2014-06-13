@@ -23,6 +23,6 @@ class CHECK_STATUS: public State
   public:
     CHECK_STATUS();
     ~CHECK_STATUS();
-    State* exec();
+    State* executeState();
 };
 

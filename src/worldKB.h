@@ -1,5 +1,6 @@
 #ifndef WORLDKB_H_
 #define WORLDKB_H_
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -14,43 +15,45 @@
 #define TRIANGLES 1
 /** We follow the nomenclature used in our localization algorithm schema. */
 
+#define CAMERA_INIT_ANGLE -90
 
-	typedef struct PatPoint {
-		int x, y;
-	} Point2D;
 
-	/** A fact in the KB which represent a static parsed-from-a-file table of the Landmark positions in the world.
-	 * 	Each `i`-th array value is the global coordinates CVPoint of the QR which has `i` as its payload 
-	 * 	`i` acts as an ID in this meaning. */
-	typedef struct QRTable {
-		Point2D qr_coords[MAXQR];
-	} QRTable;
+typedef struct PatPoint {
+	int x, y;
+} Point2D;
 
-	/** A fact in the KB which represent a successful recognition of a QR code from the camera. */
-	typedef struct Landmark {
-		/** All info related to the QR processed which represent a landmark.*/
-		QRInfos qr_info;
-		/** Angle (deg) between segments AR and axis y. */
-		int phi_angle;
-	} Landmark;
-	
-	/** A fact in the KB which contains all the information gathered from a pair of landmarks. */
-	typedef struct Triangle {
-		/** REFERENCES to real Landmarks found during exploration. This is leftmost landmark of the triangle. */
-		Landmark& landmarkA;
-		/** REFERENCES to real Landmarks found during exploration. This is rightmost landmark of the triangle. */
-		Landmark& landmarkB;
-		/** Angle (deg) between segment AR and AB. */
-		int alpha_angle;
-		/** Angle (deg) between segment AB and BR. Probably unused.*/
-		int beta_angle;
-		/** Angle (deg) between segment AB and axis x. */
-		int theta_angle;
-		/** Angle (deg) between segment AR and BR. */
-		int gamma_angle;
-		/** Proposed global cartesian coordinates where the robot should be. */
-		Point2D robot_coords;
-	} Triangle;
+/** A fact in the KB which represent a static parsed-from-a-file table of the Landmark positions in the world.
+ * 	Each `i`-th array value is the global coordinates CVPoint of the QR which has `i` as its payload
+ * 	`i` acts as an ID in this meaning. */
+typedef struct QRTable {
+	Point2D qr_coords[MAXQR];
+} QRTable;
+
+/** A fact in the KB which represent a successful recognition of a QR code from the camera. */
+typedef struct Landmark {
+	/** All info related to the QR processed which represent a landmark.*/
+	QRInfos qr_info;
+	/** Angle (deg) between segments AR and axis y. */
+	int phi_angle;
+} Landmark;
+
+/** A fact in the KB which contains all the information gathered from a pair of landmarks. */
+typedef struct Triangle {
+	/** REFERENCES to real Landmarks found during exploration. This is leftmost landmark of the triangle. */
+	Landmark& landmarkA;
+	/** REFERENCES to real Landmarks found during exploration. This is rightmost landmark of the triangle. */
+	Landmark& landmarkB;
+	/** Angle (deg) between segment AR and AB. */
+	int alpha_angle;
+	/** Angle (deg) between segment AB and BR. Probably unused.*/
+	int beta_angle;
+	/** Angle (deg) between segment AB and axis x. */
+	int theta_angle;
+	/** Angle (deg) between segment AR and BR. */
+	int gamma_angle;
+	/** Proposed global cartesian coordinates where the robot should be. */
+	Point2D robot_coords;
+} Triangle;
 
 /** this class should represent the whole knowledge base the Explore agent has on the world. 
  * It is the resource under race condition: the Explore has to WRITE on it when it get some relevant 
@@ -60,6 +63,9 @@ class WorldKB {
 
 private:
 
+	/** RELATIVE rotation of the robot camera with respect to INITIAL angle.
+	 * E.g., if camera starts from -90deg, and has turned right till 0deg, camera_angle will be 90deg.*/
+	int camera_angle;
 	/** Set of landmarks acquired during exploration. */
 	Landmark* landmarks;
 	/** Set of triangles which can be built over landmarks. */
@@ -79,6 +85,8 @@ public:
 	QRInfos fooQR;
 	/** Gets the actual number of QR found. Unique way to access this number. */
 	int get_qr_found();
+	/** Unique external way to know what the camera angle of the robot is. */
+	int getCameraAngle();
 	
 };
 #endif

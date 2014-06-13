@@ -21,7 +21,7 @@ using namespace std;
 
 // transizione che va da ON a OFF
 //  necessita della macchina per potergli settare lo stato
-	State* QR_CENTER::exec()
+	State* QR_CENTER::executeState()
 	{
 	  return new QR_PROCESS();
 	}

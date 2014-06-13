@@ -18,6 +18,6 @@ class QR_PROCESS: public State
   public:
     QR_PROCESS();
     ~QR_PROCESS();
-    State* exec();
+    State* executeState();
 };
 

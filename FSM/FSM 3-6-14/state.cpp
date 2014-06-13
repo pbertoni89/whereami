@@ -16,7 +16,7 @@ using namespace std;
         cout << "   Delete state\n";
     };
     
-    State* State::exec()
+    State* State::executeState()
     {
 		cout << "   Changing state!\n";
     }

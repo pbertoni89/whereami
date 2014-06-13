@@ -17,7 +17,7 @@ using namespace std;
 
 // transizione che va da ON a OFF
 //  necessita della macchina per potergli settare lo stato
-	State* QR_FIND::exec()
+	State* QR_FIND::executeState()
 	{
 
 	  delete this;

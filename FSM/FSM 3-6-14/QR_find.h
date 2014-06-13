@@ -23,6 +23,6 @@ class QR_FIND: public State
   public:
     QR_FIND();
     ~QR_FIND();
-    State* exec();
+    State* executeState();
 };
 

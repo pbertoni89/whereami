@@ -3,5 +3,5 @@ class State
 public:
     State(void);
     ~State(void);
-    virtual State* exec()=0;
+    virtual State* executeState()=0;
 };

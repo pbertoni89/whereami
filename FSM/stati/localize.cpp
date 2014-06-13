@@ -17,7 +17,7 @@ using namespace std;
 
 // transizione che va da ON a OFF
 //  necessita della macchina per potergli settare lo stato
-	State* LOCALIZE::exec()
+	State* LOCALIZE::executeState()
 	{
 	  delete this;
 	  return new LOCALIZE();

@@ -21,7 +21,7 @@ using namespace std;
 
 // transizione che va da ON a OFF
 //  necessita della macchina per potergli settare lo stato
-	State* INIT::exec()
+	State* INIT::executeState()
 	{
 	  camera_angle=-90;
 	  QR_found=0;

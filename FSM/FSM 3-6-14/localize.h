@@ -14,6 +14,6 @@ class LOCALIZE: public State
   public:
     LOCALIZE();
     ~LOCALIZE();
-    State* exec();
+    State* executeState();
 };
 

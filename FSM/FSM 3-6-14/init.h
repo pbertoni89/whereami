@@ -18,6 +18,6 @@ class INIT: public State
   public:
     INIT();
     ~INIT();
-    State* exec();
+    State* executeState();
 };
 

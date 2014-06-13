@@ -1,5 +1,5 @@
 #include "worldKB.h"
-#include "explorer.h"
+#include "explorerFSM.h"
 #include "server.h"
 
 int _camera_id = 0;
@@ -36,16 +36,18 @@ int getOpt(int cargc, char** cargv) {
 /** MAIN function. -------------------------------------------------------------------------------*/
 int main(int argc, char **argv){
 	
-	if (getOpt(argc, argv) != 0)
+	/*if (getOpt(argc, argv) != 0)
 		return -1;
-	  
-	WorldKB worldKB = WorldKB();
-	
-	Server server = Server(worldKB);
-	
-	Explorer explorer = Explorer(worldKB, _camera_id);
-	//explore.startFSM();
+	  printf("aaa");*/
+
+	_camera_id = 0; printf("aaa1 %d", _camera_id);
+	WorldKB worldKB = WorldKB(); printf("aaa2 %d", _camera_id);
+
+	//Server server = Server(worldKB); printf("aaa3 %d", _camera_id);
+
+	ExplorerFSM explorerFSM = ExplorerFSM(worldKB, _camera_id); printf("aaa4 %d", _camera_id);
+	explorerFSM.runFSM();
 
 	pthread_exit(NULL);
-	return 0;
+	return 55;
 }
