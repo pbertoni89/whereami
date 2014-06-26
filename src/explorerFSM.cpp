@@ -72,14 +72,16 @@ State2_QR::~State2_QR() { ; }
 State* State2_QR::executeState()
 {
 	cout << "Stato pippo \n";
-	/*
+
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE ) 
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 		this->getWorldKB()->incrementCameraAngle();
 		printf("incrementing camera angle. now is %d\n", this->getWorldKB()->getCameraAngle());
 	}
 	this->processing();
-	*/
+	cout << "ECCOLOOOO \n";
+	if(this->qrStuff.q)
+		quirc_destroy(this->qrStuff.q);
 	delete this;
 	return new State3_StatusChecking(this->getWorldKB());
 }
@@ -187,9 +189,8 @@ void State2_QR::copyPayload() {
 }
 
 void State2_QR::resetQR() {
-	if(this->qrStuff.q)
-		quirc_destroy(this->qrStuff.q);
-	cout << "sono qui\n";
+
+
 	this->qrStuff.q = quirc_new();
 	if(!this->qrStuff.q) {
 		perror("Can't create quirc object");
