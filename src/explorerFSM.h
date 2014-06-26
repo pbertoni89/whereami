@@ -46,7 +46,7 @@ public:
 	State* executeState(void);
 };
 
-class State2_Zaghen: public State
+class State2_QR: public State
 {
 private:
 	int camera_id;
@@ -81,8 +81,8 @@ private:
 	bool processing();
 
 public:
-	State2_Zaghen(WorldKB* _worldKB);
-	~State2_Zaghen();
+	State2_QR(WorldKB* _worldKB);
+	~State2_QR();
 	State* executeState();
 };
 

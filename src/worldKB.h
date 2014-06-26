@@ -10,23 +10,24 @@
 #include "message.h"
 
 #define MAXQR 10
+#define MAXSTRING 3
 /** If set to `1` means only localization2 is implemented. 
  * 	When extended to localization3 it will become equal to `3` (dispositions without ripetition) */
 #define TRIANGLES 1
 /** We follow the nomenclature used in our localization algorithm schema. */
-
 #define CAMERA_INIT_ANGLE -90
-
+#define CAMERA_END_ANGLE 90
+/** How much degrees over 360° would be incremented during each search step. */
+#define CAMERA_STEP_ANGLE 1
 
 typedef struct PatPoint {
 	int x, y;
 } Point2D;
 
-/** A fact in the KB which represent a static parsed-from-a-file table of the Landmark positions in the world.
- * 	Each `i`-th array value is the global coordinates CVPoint of the QR which has `i` as its payload
- * 	`i` acts as an ID in this meaning. */
+/** A fact in the KB which represent a static parsed-from-a-file table of the Landmark positions in the world. */
 typedef struct QRTable {
 	Point2D qr_coords[MAXQR];
+	string qr_label[MAXQR];
 } QRTable;
 
 /** A fact in the KB which represent a successful recognition of a QR code from the camera. */
@@ -62,7 +63,6 @@ typedef struct Triangle {
 class WorldKB {
 
 private:
-
 	/** RELATIVE rotation of the robot camera with respect to INITIAL angle.
 	 * E.g., if camera starts from -90deg, and has turned right till 0deg, camera_angle will be 90deg.*/
 	int camera_angle;
@@ -72,21 +72,26 @@ private:
 	Triangle* triangles;
 	/** Number of unique QR codes found and processed in the exploration. That is, actual size of landmarks.*/
 	int qr_found;
-	/** The mutex semaphore that bounds all thread in thread_list. */
-	pthread_mutex_t mutex;
+	/** QR Static table. */
+	QRTable qrTable;
+	/** Static initialization of the QR Table, In the future, it will be read from a file. */
+	void createStaticQRTable();
 
 public:
 	WorldKB();
 	~WorldKB();
-	pthread_mutex_t* getMutex();
 	/** Pushes a QRInfo just processed to the worldKB */
 	void pushQR(QRInfos* qr_info);
 	// this will be deleted when worldKB will be really implemented.
 	QRInfos fooQR;
 	/** Gets the actual number of QR found. Unique way to access this number. */
 	int get_qr_found();
-	/** Unique external way to know what the camera angle of the robot is. */
+	/** Unique external way to know the camera angle of the robot. */
 	int getCameraAngle();
-	
+	/** Unique external way to set the camera angle of the robot. */
+	void setCameraAngle(int _camera_angle);
+	/** Unique external way to increment buy a fixed quantity the camera angle of the robot. */
+	void incrementCameraAngle();
+	bool isQRInKB(string label);
 };
 #endif

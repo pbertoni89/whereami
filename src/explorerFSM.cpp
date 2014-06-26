@@ -31,12 +31,12 @@ State1_Init::~State1_Init() { ; }
 State* State1_Init::executeState(void)
 {	
 	delete this;
-	return new State2_Zaghen(this->getWorldKB());
+	return new State2_QR(this->getWorldKB());
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
-State2_Zaghen::State2_Zaghen(WorldKB* _worldKB) : State(_worldKB)
+State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
 	cout << "Entered in State 2." << endl;
 	camera_id = 0;
@@ -67,22 +67,24 @@ State2_Zaghen::State2_Zaghen(WorldKB* _worldKB) : State(_worldKB)
 	cout << "Zaghen built! \n";
 }
 
-State2_Zaghen::~State2_Zaghen() { ; }
+State2_QR::~State2_QR() { ; }
 
-State* State2_Zaghen::executeState()
+State* State2_QR::executeState()
 {
+	cout << "Stato pippo \n";
+	/*
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE ) 
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 		this->getWorldKB()->incrementCameraAngle();
 		printf("incrementing camera angle. now is %d\n", this->getWorldKB()->getCameraAngle());
 	}
 	this->processing();
-	
+	*/
 	delete this;
 	return new State3_StatusChecking(this->getWorldKB());
 }
 
-bool State2_Zaghen::searching()
+bool State2_QR::searching()
 {
 	resetQR();
 	
@@ -109,7 +111,7 @@ bool State2_Zaghen::searching()
 	   
 	return true; //handle
 }
-bool State2_Zaghen::processing() {
+bool State2_QR::processing() {
 	
 	double side2 = pitagora((double) (this->qrStuff.temp_qr_info.x1 - this->qrStuff.temp_qr_info.x2), (double)(this->qrStuff.temp_qr_info.y1 - this->qrStuff.temp_qr_info.y2));
 	double side4 = pitagora((double) (this->qrStuff.temp_qr_info.x3 - this->qrStuff.temp_qr_info.x0), (double)(this->qrStuff.temp_qr_info.y3 - this->qrStuff.temp_qr_info.y0));
@@ -117,7 +119,7 @@ bool State2_Zaghen::processing() {
 	return false;
 }
 
-void State2_Zaghen::copyCorners() {
+void State2_QR::copyCorners() {
 
 	this->qrStuff.temp_qr_info.x0 = this->qrStuff.code->corners[0].x;
 	this->qrStuff.temp_qr_info.y0 = this->qrStuff.code->corners[0].y;
@@ -129,13 +131,13 @@ void State2_Zaghen::copyCorners() {
 	this->qrStuff.temp_qr_info.y3 = this->qrStuff.code->corners[3].y;
 }
 
-int State2_Zaghen::scaleQR(double side) {
+int State2_QR::scaleQR(double side) {
 	static double fact = (double)this->scale_factor * (double)this->qr_size_mm;
 	return fact/side;
 }
 
 /** Calculate perspective rotation and distance of the QR. ---------------------------------------*/
-void State2_Zaghen::calcPerspective_Distance(double side2, double side4) {
+void State2_QR::calcPerspective_Distance(double side2, double side4) {
 
 	int qr_pixel_size = average(side2, side4);
 	int s2_dist = this->scaleQR(side2);
@@ -151,7 +153,7 @@ void State2_Zaghen::calcPerspective_Distance(double side2, double side4) {
 	this->qrStuff.temp_qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
 }
 
-bool State2_Zaghen::isCentered() {
+bool State2_QR::isCentered() {
 
 	int x_center = average(qrStuff.temp_qr_info.x0, qrStuff.temp_qr_info.x2);
 	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
@@ -161,7 +163,7 @@ bool State2_Zaghen::isCentered() {
 	return false;
 }
 
-void State2_Zaghen::printQRInfo() {
+void State2_QR::printQRInfo() {
 	printf("*********************************************\n");
     printf("Perspective rotation\t\t%d\n", this->qrStuff.temp_qr_info.perspective_rotation);
     printf("Distance from camera\t\t%d\n", this->qrStuff.temp_qr_info.distance);
@@ -170,7 +172,7 @@ void State2_Zaghen::printQRInfo() {
 }
 
 /** Copies payload from data to info structure. --------------------------------------------------*/
-void State2_Zaghen::copyPayload() {
+void State2_QR::copyPayload() {
 
 	this->qrStuff.temp_qr_info.message_length = MAXLENGTH;
 	int payload_len = this->qrStuff.data->payload_len;
@@ -184,14 +186,16 @@ void State2_Zaghen::copyPayload() {
     this->qrStuff.temp_qr_info.qr_message[MAXLENGTH] = '\0';
 }
 
-void State2_Zaghen::resetQR() {
+void State2_QR::resetQR() {
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
+	cout << "sono qui\n";
 	this->qrStuff.q = quirc_new();
 	if(!this->qrStuff.q) {
 		perror("Can't create quirc object");
 		exit(1);
 	}
+
 	this->qrStuff.temp_qr_info.distance = 0;
 	this->qrStuff.temp_qr_info.message_length = 0;
 	this->qrStuff.temp_qr_info.payload_truncated = 0;
@@ -201,7 +205,7 @@ void State2_Zaghen::resetQR() {
 }
 
 /** Processes QR code. ---------------------------------------------------------------------------*/
-bool State2_Zaghen::preProcessing(Mat frame_BW) {
+bool State2_QR::preProcessing(Mat frame_BW) {
 
 	cv_to_quirc(this->qrStuff.q, frame_BW);
 	quirc_end(this->qrStuff.q);
@@ -211,7 +215,7 @@ bool State2_Zaghen::preProcessing(Mat frame_BW) {
     return false;
   }
   if(count > 1) {
-	cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl; 
+	cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl;
 	}
 
   struct quirc_code code2;
@@ -245,6 +249,7 @@ State3_StatusChecking::~State3_StatusChecking() { ; }
 
 State* State3_StatusChecking::executeState()
 {
+	cout << "Sono nello stato 3\n";
   delete this;
   return new State4_Localizing(this->getWorldKB());
 }
