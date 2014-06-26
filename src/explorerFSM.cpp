@@ -43,9 +43,10 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 	int camera_angle = this->getWorldKB()->getCameraAngle();
 	qrStuff.temp_qr_info.message_length = -1;
 
-	const char* filename = "out_camera_data.yml";
+	const char* filename = "/home/gio/Scrivania/progettoQR/whereami/out_camera_data.yml"; /**TODO OCCHIO IN RELEASE */
 	CvFileStorage* fs = cvOpenFileStorage(filename, 0, CV_STORAGE_READ);
 	if (fs==NULL) {
+		system("pwd");
 		printf("Error during calibration file loading.\n");
 		exit(76);
 	}
@@ -64,14 +65,12 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 	Mat framet;
     capture >> framet;
     this->frameCols = framet.cols;
-	cout << "Zaghen built! \n";
 }
 
 State2_QR::~State2_QR() { ; }
 
 State* State2_QR::executeState()
 {
-	cout << "Stato pippo \n";
 
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE ) 
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
@@ -79,7 +78,6 @@ State* State2_QR::executeState()
 		printf("incrementing camera angle. now is %d\n", this->getWorldKB()->getCameraAngle());
 	}
 	this->processing();
-	cout << "ECCOLOOOO \n";
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
 	delete this;
@@ -88,7 +86,12 @@ State* State2_QR::executeState()
 
 bool State2_QR::searching()
 {
-	resetQR();
+	this->qrStuff.q = quirc_new();
+	if(!this->qrStuff.q) {
+		perror("Can't create quirc object");
+		exit(1);
+	}
+																	//resetQR(); // MOLTO ragionevole spostarlo
 	
 	Mat frame, frame_undistort, frame_BW;
 	if( !this->capture.isOpened() )
@@ -103,14 +106,10 @@ bool State2_QR::searching()
 
 	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
 	cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
-
+	cv_to_quirc(this->qrStuff.q, frame_BW);
 	if (!preProcessing(frame_BW))
 		return false;
 
-	int key = 0xff & waitKey(capture.isOpened() ? 50 : 500);
-	if( (key & 255) == 27 )
-	   exit(0);
-	   
 	return true; //handle
 }
 bool State2_QR::processing() {
@@ -122,7 +121,6 @@ bool State2_QR::processing() {
 }
 
 void State2_QR::copyCorners() {
-
 	this->qrStuff.temp_qr_info.x0 = this->qrStuff.code->corners[0].x;
 	this->qrStuff.temp_qr_info.y0 = this->qrStuff.code->corners[0].y;
 	this->qrStuff.temp_qr_info.x1 = this->qrStuff.code->corners[1].x;
@@ -175,7 +173,7 @@ void State2_QR::printQRInfo() {
 
 /** Copies payload from data to info structure. --------------------------------------------------*/
 void State2_QR::copyPayload() {
-
+	 cout << "qui passo1";
 	this->qrStuff.temp_qr_info.message_length = MAXLENGTH;
 	int payload_len = this->qrStuff.data->payload_len;
     int payloadTruncated = 0;
@@ -183,20 +181,13 @@ void State2_QR::copyPayload() {
       payload_len = MAXLENGTH-1;  // truncate long payloads
       payloadTruncated = 1;
     }
+    cout << "qui passo";
     this->qrStuff.temp_qr_info.payload_truncated = payloadTruncated;
     memcpy(this->qrStuff.temp_qr_info.qr_message, this->qrStuff.data->payload, payload_len+1 ); // copy the '\0' too.
     this->qrStuff.temp_qr_info.qr_message[MAXLENGTH] = '\0';
 }
 
 void State2_QR::resetQR() {
-
-
-	this->qrStuff.q = quirc_new();
-	if(!this->qrStuff.q) {
-		perror("Can't create quirc object");
-		exit(1);
-	}
-
 	this->qrStuff.temp_qr_info.distance = 0;
 	this->qrStuff.temp_qr_info.message_length = 0;
 	this->qrStuff.temp_qr_info.payload_truncated = 0;
@@ -208,7 +199,8 @@ void State2_QR::resetQR() {
 /** Processes QR code. ---------------------------------------------------------------------------*/
 bool State2_QR::preProcessing(Mat frame_BW) {
 
-	cv_to_quirc(this->qrStuff.q, frame_BW);
+	cout << "entered PREprocessing. " <<endl;
+
 	quirc_end(this->qrStuff.q);
 
   int count = quirc_count(this->qrStuff.q);
@@ -223,18 +215,23 @@ bool State2_QR::preProcessing(Mat frame_BW) {
   struct quirc_data data2;
   quirc_decode_error_t err;
 
+  //quirc_extract(this->qrStuff.q, 0, &code2); // only recognize the first QR code found in the image
+ // err = quirc_decode(&code2, &data2);
   quirc_extract(this->qrStuff.q, 0, &code2); // only recognize the first QR code found in the image
   err = quirc_decode(&code2, &data2);
-
-  if(!err) {
-	copyPayload();
-	if(this->getWorldKB()->isQRInKB(this->qrStuff.temp_qr_info.qr_message)) {
-		cout << "QR code labelled " << this->qrStuff.temp_qr_info.qr_message << "is already in KB." << endl;
-		return false;
-	}
-	copyCorners();
-	if (!isCentered())
-		return false;
+  cout << " QR should now be deconode. err =" << err<< endl;
+   if(err==0) {
+	  cout << "non c'e stato errore" << endl;
+	  cout << "qui passo";
+		copyPayload();
+		cout << "\t QR CODE FOUND, LABELLED : " << this->qrStuff.temp_qr_info.qr_message << endl;
+		if(this->getWorldKB()->isQRInKB(this->qrStuff.temp_qr_info.qr_message)) {
+			cout << "QR code labelled " << this->qrStuff.temp_qr_info.qr_message << "is already in KB." << endl;
+			return false;
+		}
+		copyCorners();
+		if (!isCentered())
+			return false;
   }
   return true;
 }

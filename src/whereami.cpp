@@ -35,10 +35,6 @@ int getOpt(int cargc, char** cargv) {
 
 /** MAIN function. -------------------------------------------------------------------------------*/
 int main(int argc, char **argv){
-	
-	/*if (getOpt(argc, argv) != 0)
-		return -1;
-	  printf("aaa");*/
 
 	_camera_id = 0; printf("aaa1 %d", _camera_id);
 	 printf("aaa2 %d", _camera_id);
