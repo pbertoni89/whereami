@@ -1,15 +1,23 @@
 #include "explorerFSM.h"
-
+/*
+ *26/06/2014
+ *Riusciamo a leggere il payload.
+ *Ora dobbiamo:
+ * 1. Controllare che il QR non sia già in KB
+ * 2. Centrarlo cioè far andare avanti il motorino fino a chè non è centrato
+ * 3. inserimenti nella KB
+ * 1. Fare un piccolo parser per cui dato il payload estraggo le coordinate
+ */
 State::State(WorldKB* _worldKB) //: worldKB(_worldKB)
 {
 	//NON LA VEDEEEEEEEEEEE!!!!!!!!!!
 	this->worldKB = _worldKB;
-	cout << "   Create state\n ";
+	//cout << "   Create state\n ";
 }
 
 State::~State()
 {
-	cout << "   Delete state\n";
+	//cout << "   Delete state\n";
 }
 
 WorldKB* State::getWorldKB()
@@ -38,17 +46,19 @@ State* State1_Init::executeState(void)
 
 State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
-	cout << "Entered in State 2." << endl;
+	//cout << "Entered in State 2 Constructior." << endl;
 	camera_id = 0;
 	int camera_angle = this->getWorldKB()->getCameraAngle();
-	qrStuff.temp_qr_info.message_length = -1;
+	//qrStuff.temp_qr_info.message_length = -1;
+	qrStuff.q = (quirc*)malloc(sizeof(quirc));
+	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
+	qrStuff.qr_info = *temp;
 
 	const char* filename = "/home/gio/Scrivania/progettoQR/whereami/out_camera_data.yml"; /**TODO OCCHIO IN RELEASE */
 	CvFileStorage* fs = cvOpenFileStorage(filename, 0, CV_STORAGE_READ);
 	if (fs==NULL) {
-		system("pwd");
 		printf("Error during calibration file loading.\n");
-		exit(76);
+		exit(1);
 	}
 	this->intrinsic_matrix = (CvMat*)cvReadByName(fs, 0, "camera_matrix");
 	this->distortion_coeffs = (CvMat*)cvReadByName(fs, 0, "distortion_coefficients");
@@ -72,7 +82,7 @@ State2_QR::~State2_QR() { ; }
 State* State2_QR::executeState()
 {
 
-	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE ) 
+	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE )
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 		this->getWorldKB()->incrementCameraAngle();
 		printf("incrementing camera angle. now is %d\n", this->getWorldKB()->getCameraAngle());
@@ -92,12 +102,10 @@ bool State2_QR::searching()
 		exit(1);
 	}
 																	//resetQR(); // MOLTO ragionevole spostarlo
-	
-	Mat frame, frame_undistort, frame_BW;
+	Mat frame0, frame, frame_undistort, frame_BW;
 	if( !this->capture.isOpened() )
 		{ perror("Error opening capture.\n"); exit(1); }
 
-	Mat frame0;
 	capture >> frame0;
 	frame0.copyTo(frame);
 
@@ -107,28 +115,29 @@ bool State2_QR::searching()
 	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
 	cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
 	cv_to_quirc(this->qrStuff.q, frame_BW);
-	if (!preProcessing(frame_BW))
-		return false;
-
-	return true; //handle
+	if (preProcessing() == true)
+		return true;
+	//cout << "searching sta per tornare false";
+	// qua andrà atra roba credo
+	return false; //handle
 }
 bool State2_QR::processing() {
 	
-	double side2 = pitagora((double) (this->qrStuff.temp_qr_info.x1 - this->qrStuff.temp_qr_info.x2), (double)(this->qrStuff.temp_qr_info.y1 - this->qrStuff.temp_qr_info.y2));
-	double side4 = pitagora((double) (this->qrStuff.temp_qr_info.x3 - this->qrStuff.temp_qr_info.x0), (double)(this->qrStuff.temp_qr_info.y3 - this->qrStuff.temp_qr_info.y0));
+	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
+	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
 	calcPerspective_Distance(side2, side4);
 	return false;
 }
 
 void State2_QR::copyCorners() {
-	this->qrStuff.temp_qr_info.x0 = this->qrStuff.code->corners[0].x;
-	this->qrStuff.temp_qr_info.y0 = this->qrStuff.code->corners[0].y;
-	this->qrStuff.temp_qr_info.x1 = this->qrStuff.code->corners[1].x;
-	this->qrStuff.temp_qr_info.y1 = this->qrStuff.code->corners[1].y;
-	this->qrStuff.temp_qr_info.x2 = this->qrStuff.code->corners[2].x;
-	this->qrStuff.temp_qr_info.y2 = this->qrStuff.code->corners[2].y;
-	this->qrStuff.temp_qr_info.x3 = this->qrStuff.code->corners[3].x;
-	this->qrStuff.temp_qr_info.y3 = this->qrStuff.code->corners[3].y;
+	this->qrStuff.qr_info.x0 = this->qrStuff.code.corners[0].x;
+	this->qrStuff.qr_info.y0 = this->qrStuff.code.corners[0].y;
+	this->qrStuff.qr_info.x1 = this->qrStuff.code.corners[1].x;
+	this->qrStuff.qr_info.y1 = this->qrStuff.code.corners[1].y;
+	this->qrStuff.qr_info.x2 = this->qrStuff.code.corners[2].x;
+	this->qrStuff.qr_info.y2 = this->qrStuff.code.corners[2].y;
+	this->qrStuff.qr_info.x3 = this->qrStuff.code.corners[3].x;
+	this->qrStuff.qr_info.y3 = this->qrStuff.code.corners[3].y;
 }
 
 int State2_QR::scaleQR(double side) {
@@ -142,7 +151,7 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 	int qr_pixel_size = average(side2, side4);
 	int s2_dist = this->scaleQR(side2);
 	int s4_dist = this->scaleQR(side4);
-	this->qrStuff.temp_qr_info.distance = average(s2_dist, s4_dist);
+	this->qrStuff.qr_info.distance = average(s2_dist, s4_dist);
 
 	static double threshold = qr_pixel_size/double(THRESH); // progressive based on how far the QR code is (near -> increase).
 	int s_LR_dist_delta = s2_dist - s4_dist;
@@ -150,12 +159,12 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 	if (abs(s_LR_dist_delta) < threshold)
 		s_LR_dist_delta = 0;
 
-	this->qrStuff.temp_qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
+	this->qrStuff.qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
 }
 
 bool State2_QR::isCentered() {
 
-	int x_center = average(qrStuff.temp_qr_info.x0, qrStuff.temp_qr_info.x2);
+	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
 	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
 	if ( abs( x_center - frameCols ) < centering_tolerance )
 		return true;
@@ -165,42 +174,42 @@ bool State2_QR::isCentered() {
 
 void State2_QR::printQRInfo() {
 	printf("*********************************************\n");
-    printf("Perspective rotation\t\t%d\n", this->qrStuff.temp_qr_info.perspective_rotation);
-    printf("Distance from camera\t\t%d\n", this->qrStuff.temp_qr_info.distance);
-    printf("Payload\t\t%s\n ", this->qrStuff.temp_qr_info.qr_message);
+    printf("Perspective rotation\t\t%d\n", this->qrStuff.qr_info.perspective_rotation);
+    printf("Distance from camera\t\t%d\n", this->qrStuff.qr_info.distance);
+    printf("Payload\t\t%s\n ", this->qrStuff.qr_info.qr_message);
     printf("*********************************************\n\n");
 }
 
 /** Copies payload from data to info structure. --------------------------------------------------*/
-void State2_QR::copyPayload() {
-	 cout << "qui passo1";
-	this->qrStuff.temp_qr_info.message_length = MAXLENGTH;
-	int payload_len = this->qrStuff.data->payload_len;
+int State2_QR::copyPayload() {
+// cout << "qui passo1\n";
+	this->qrStuff.qr_info.message_length = MAXLENGTH;
+	int payload_len = this->qrStuff.data.payload_len;
+	//cout << payload_len;
     int payloadTruncated = 0;
     if(payload_len > MAXLENGTH-1){
       payload_len = MAXLENGTH-1;  // truncate long payloads
       payloadTruncated = 1;
     }
-    cout << "qui passo";
-    this->qrStuff.temp_qr_info.payload_truncated = payloadTruncated;
-    memcpy(this->qrStuff.temp_qr_info.qr_message, this->qrStuff.data->payload, payload_len+1 ); // copy the '\0' too.
-    this->qrStuff.temp_qr_info.qr_message[MAXLENGTH] = '\0';
+    this->qrStuff.qr_info.payload_truncated = payloadTruncated;
+    memcpy(this->qrStuff.qr_info.qr_message, this->qrStuff.data.payload, payload_len+1 ); // copy the '\0' too.
+    this->qrStuff.qr_info.qr_message[MAXLENGTH] = '\0';
+    return payload_len;
 }
 
 void State2_QR::resetQR() {
-	this->qrStuff.temp_qr_info.distance = 0;
-	this->qrStuff.temp_qr_info.message_length = 0;
-	this->qrStuff.temp_qr_info.payload_truncated = 0;
-	this->qrStuff.temp_qr_info.perspective_rotation = 0;
-	this->qrStuff.temp_qr_info.vertical_rotation = 0;
-	this->qrStuff.temp_qr_info.x0 = this->qrStuff.temp_qr_info.y0 = this->qrStuff.temp_qr_info.x1 = this->qrStuff.temp_qr_info.y1 = this->qrStuff.temp_qr_info.x2 = this->qrStuff.temp_qr_info.y2 = this->qrStuff.temp_qr_info.x3 = this->qrStuff.temp_qr_info.y3 = 0;
+	this->qrStuff.qr_info.distance = 0;
+	this->qrStuff.qr_info.message_length = -1;
+	this->qrStuff.qr_info.payload_truncated = 0;
+	this->qrStuff.qr_info.perspective_rotation = 0;
+	this->qrStuff.qr_info.vertical_rotation = 0;
+	this->qrStuff.qr_info.x0 = this->qrStuff.qr_info.y0 = this->qrStuff.qr_info.x1 = this->qrStuff.qr_info.y1 = this->qrStuff.qr_info.x2 = this->qrStuff.qr_info.y2 = this->qrStuff.qr_info.x3 = this->qrStuff.qr_info.y3 = 0;
 }
 
 /** Processes QR code. ---------------------------------------------------------------------------*/
-bool State2_QR::preProcessing(Mat frame_BW) {
+bool State2_QR::preProcessing() {
 
-	cout << "entered PREprocessing. " <<endl;
-
+	//cout << "entered PREprocessing. " <<endl;
 	quirc_end(this->qrStuff.q);
 
   int count = quirc_count(this->qrStuff.q);
@@ -217,37 +226,41 @@ bool State2_QR::preProcessing(Mat frame_BW) {
 
   //quirc_extract(this->qrStuff.q, 0, &code2); // only recognize the first QR code found in the image
  // err = quirc_decode(&code2, &data2);
-  quirc_extract(this->qrStuff.q, 0, &code2); // only recognize the first QR code found in the image
-  err = quirc_decode(&code2, &data2);
-  cout << " QR should now be deconode. err =" << err<< endl;
+  quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code)); // only recognize the first QR code found in the image
+  err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
+  //cout << " QR should now be deconode. err =" << err<< endl;
    if(err==0) {
-	  cout << "non c'e stato errore" << endl;
-	  cout << "qui passo";
-		copyPayload();
-		cout << "\t QR CODE FOUND, LABELLED : " << this->qrStuff.temp_qr_info.qr_message << endl;
-		if(this->getWorldKB()->isQRInKB(this->qrStuff.temp_qr_info.qr_message)) {
-			cout << "QR code labelled " << this->qrStuff.temp_qr_info.qr_message << "is already in KB." << endl;
+	 //cout << "non c'e stato errore" << endl;
+	  //cout << "qui passo";
+	   int ty=0;
+	  ty=copyPayload();
+		if(this->getWorldKB()->isQRInKB(this->qrStuff.qr_info.qr_message)) {
+			//cout << "QR: " << this->qrStuff.qr_info.qr_message << "is already in KB." << endl;
 			return false;
 		}
 		copyCorners();
 		if (!isCentered())
 			return false;
-  }
-  return true;
+		if(ty>2){
+			  cout << "\t QR: " << this->qrStuff.qr_info.qr_message << endl;
+		 return true; // ho finito tutti e due i controlli (centrato E non in KB); posso andare avanti
+		}
+	}
+  return false;
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
 State3_StatusChecking::State3_StatusChecking(WorldKB* _worldKB) : State(_worldKB)
 {
-	cout << "   State4_StatusChecking state\n";
+	//cout << "   State4_StatusChecking state\n";
 }
 
 State3_StatusChecking::~State3_StatusChecking() { ; }
 
 State* State3_StatusChecking::executeState()
 {
-	cout << "Sono nello stato 3\n";
+	//cout << "Sono nello stato 3\n";
   delete this;
   return new State4_Localizing(this->getWorldKB());
 }
@@ -256,7 +269,7 @@ State* State3_StatusChecking::executeState()
 
 State4_Localizing::State4_Localizing(WorldKB* _worldKB) : State(_worldKB)
 {
-	cout << "   State5_Localizing state\n";
+	//cout << "   State5_Localizing state\n";
 }
 
 State4_Localizing::~State4_Localizing() { ; }
@@ -271,7 +284,7 @@ State* State4_Localizing::executeState()
 
 State5_Error::State5_Error(WorldKB* _worldKB) : State(_worldKB)
 {
-	cout << "   State5_Localizing state\n";
+	//cout << "   State5_Localizing state\n";
 }
 
 State5_Error::~State5_Error() { ; }

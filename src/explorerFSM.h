@@ -16,13 +16,13 @@ using namespace cv;
 
 typedef struct QRStuff {
 	/** Temporary QRInfos structure describing the CURRENT QR to be processed and sent to worldKB. */
-	QRInfos temp_qr_info;
+	QRInfos qr_info;
 	/** Structure strongly bounded with temp_qr_info. */
 	struct quirc* q;
 	/** Structure strongly bounded with temp_qr_info. */
-	struct quirc_code* code;
+	struct quirc_code code;
 	/** Structure strongly bounded with temp_qr_info. */
-	struct quirc_data* data;
+	struct quirc_data data;
 } QRStuff;
 
 class State
@@ -70,13 +70,13 @@ private:
 	void copyCorners();
 	void calcPerspective_Distance(double side_a, double side_b);
 	bool isCentered();
-	void copyPayload();
+	int copyPayload();
 	void printQRInfo(); //will be deleted
 	void resetQR();
 	/** First of two top-view methods of State2. Return a QRInfo iff a QR is found; else returns NULL*/
 	bool searching();
 	/** Internal method used by searching. ENSURES THAT 1) QR is in KB facts 2) QR is centered enough */
-	bool preProcessing(Mat frame_BW);
+	bool preProcessing();
 	/** Second of two top-view methods of State2. Return true iff QR is correctly pushed into worldKB */
 	bool processing();
 

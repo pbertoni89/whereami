@@ -16,7 +16,7 @@
 #define TRIANGLES 1
 /** We follow the nomenclature used in our localization algorithm schema. */
 #define CAMERA_INIT_ANGLE -90
-#define CAMERA_END_ANGLE 90
+#define CAMERA_END_ANGLE 900
 /** How much degrees over 360° would be incremented during each search step. */
 #define CAMERA_STEP_ANGLE 1
 
