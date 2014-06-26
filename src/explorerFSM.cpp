@@ -1,12 +1,9 @@
 #include "explorerFSM.h"
 
-// ----------------------------------------------------------------------------------------------------------
-// ----------------------------------------------------------------------------------------------------------
-// ----------------------------------------------------------------------------------------------------------
-// ----------------------------------------------------------------------------------------------------------
-
-State::State(WorldKB& _worldKB) : worldKB(_worldKB)
+State::State(WorldKB* _worldKB) //: worldKB(_worldKB)
 {
+	//NON LA VEDEEEEEEEEEEE!!!!!!!!!!
+	this->worldKB = _worldKB;
 	cout << "   Create state\n ";
 }
 
@@ -15,33 +12,35 @@ State::~State()
 	cout << "   Delete state\n";
 }
 
-WorldKB& State::getWorldKB()
+WorldKB* State::getWorldKB()
 {
 	return this->worldKB;
 }
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-State1_Init::State1_Init(WorldKB& _worldKB) : State(_worldKB)
+void State::setWorldKB(WorldKB* kb) 
 {
-	cout << "   fare chiamatra di sisrema morgul muovi cacca\n";
+	this->worldKB = kb;
 }
-
+// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
+State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB) {
+	//WorldKB* temp = new WorldKB; //controllare che funzioni correttamente; a esempio che sovrascriva le vecchie strutture
+	//printf("allocated worldkb pointer at %p\n", temp);
+	//his->setWorldKB(temp);
+}
 State1_Init::~State1_Init() { ; }
 
 State* State1_Init::executeState(void)
-{
-  //camera_angle=-90;
-  //QR_found=0;
-  delete this;
-  return new State2_Zaghen(this->getWorldKB());
+{	
+	delete this;
+	return new State2_Zaghen(this->getWorldKB());
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
-State2_Zaghen::State2_Zaghen(WorldKB& _worldKB) : State(_worldKB)
+State2_Zaghen::State2_Zaghen(WorldKB* _worldKB) : State(_worldKB)
 {
+	cout << "Entered in State 2." << endl;
 	camera_id = 0;
-	int camera_angle = this->getWorldKB().getCameraAngle();
-	cout << "   State2_Finding state\n";
+	int camera_angle = this->getWorldKB()->getCameraAngle();
 	qrStuff.temp_qr_info.message_length = -1;
 
 	const char* filename = "out_camera_data.yml";
@@ -62,8 +61,9 @@ State2_Zaghen::State2_Zaghen(WorldKB& _worldKB) : State(_worldKB)
 		printf("Error during capture opening.\n");
 		exit(1);
 	  }
-
-	// ------------------------------------------------------------------------------------------ currentState = new State1_Init();
+	Mat framet;
+    capture >> framet;
+    this->frameCols = framet.cols;
 	cout << "Zaghen built! \n";
 }
 
@@ -71,117 +71,52 @@ State2_Zaghen::~State2_Zaghen() { ; }
 
 State* State2_Zaghen::executeState()
 {
+	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE ) 
+	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
+		this->getWorldKB()->incrementCameraAngle();
+		printf("incrementing camera angle. now is %d\n", this->getWorldKB()->getCameraAngle());
+	}
+	this->processing();
+	
+	delete this;
+	return new State3_StatusChecking(this->getWorldKB());
+}
 
-	printf("Scanning thread started.\n");
+bool State2_Zaghen::searching()
+{
+	resetQR();
+	
 	Mat frame, frame_undistort, frame_BW;
-	while(1) {
+	if( !this->capture.isOpened() )
+		{ perror("Error opening capture.\n"); exit(1); }
 
-        if( !this->capture.isOpened() )
-			{ perror("Error opening capture.\n"); ThreadOnMutex::closeAllThreads(); }
+	Mat frame0;
+	capture >> frame0;
+	frame0.copyTo(frame);
 
-		Mat frame0;
-        capture >> frame0;
-        frame0.copyTo(frame);
+	if (!frame.data)
+		{ perror("Error loading the frame.\n"); exit(1); }
 
-		if (!frame.data)
-			{ perror("Error loading the frame.\n"); ThreadOnMutex::closeAllThreads(); }
+	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
+	cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
 
-		undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
-		cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
+	if (!preProcessing(frame_BW))
+		return false;
 
-		cv_to_quirc(this->qrStuff.q, frame_BW);
-		processQR();
-		resetQR();
-
-		int key = 0xff & waitKey(capture.isOpened() ? 50 : 500);
-        if( (key & 255) == 27 )
-           exit(0);
-	}
-
-
-  delete this;
-  return new State3_StatusChecking(this->getWorldKB());
+	int key = 0xff & waitKey(capture.isOpened() ? 50 : 500);
+	if( (key & 255) == 27 )
+	   exit(0);
+	   
+	return true; //handle
+}
+bool State2_Zaghen::processing() {
+	
+	double side2 = pitagora((double) (this->qrStuff.temp_qr_info.x1 - this->qrStuff.temp_qr_info.x2), (double)(this->qrStuff.temp_qr_info.y1 - this->qrStuff.temp_qr_info.y2));
+	double side4 = pitagora((double) (this->qrStuff.temp_qr_info.x3 - this->qrStuff.temp_qr_info.x0), (double)(this->qrStuff.temp_qr_info.y3 - this->qrStuff.temp_qr_info.y0));
+	calcPerspective_Distance(side2, side4);
+	return false;
 }
 
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-
-State3_StatusChecking::State3_StatusChecking(WorldKB& _worldKB) : State(_worldKB)
-{
-	cout << "   State4_StatusChecking state\n";
-}
-
-State3_StatusChecking::~State3_StatusChecking() { ; }
-
-State* State3_StatusChecking::executeState()
-{
-  delete this;
-  return new State4_Localizing(this->getWorldKB());
-}
-
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-
-State4_Localizing::State4_Localizing(WorldKB& _worldKB) : State(_worldKB)
-{
-	cout << "   State5_Localizing state\n";
-}
-
-State4_Localizing::~State4_Localizing() { ; }
-
-State* State4_Localizing::executeState()
-{
-  delete this;
-  return NULL;
-}
-
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-
-State5_Error::State5_Error(WorldKB& _worldKB) : State(_worldKB)
-{
-	cout << "   State5_Localizing state\n";
-}
-
-State5_Error::~State5_Error() { ; }
-
-State* State5_Error::executeState()
-{
-  delete this;
-  return NULL;
-}
-
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-
-ExplorerFSM::ExplorerFSM(WorldKB& _worldKB, int _camera_id) : ThreadOnMutex(_worldKB) {
-
-	setThreadIndex(EXPLORERTHREADINDEX);
-	camera_id = _camera_id;
-
-	/// ci va qualcosa qui ???? boh
-}
-
-ExplorerFSM::~ExplorerFSM()
-{ ;
-}
-
-void ExplorerFSM::setCurrentState(State *s)
-{
-	currentState = s;
-}
-
-void ExplorerFSM::runFSM()
-{
-	int ret = pthread_create(getOwnThread(), NULL, &ExplorerFSM::call_threadBehaviour, NULL);
-	if(ret != 0) {
-		printf("Error creating the scanner thread. [%s]\n", strerror(ret));
-		ThreadOnMutex::closeAllThreads();
-		exit(1);
-	}
-}
-
-// --HERE STARTS SET OF METHODS OF OLD INSPECT CLASS -----------------------------------------------------------------------------
 void State2_Zaghen::copyCorners() {
 
 	this->qrStuff.temp_qr_info.x0 = this->qrStuff.code->corners[0].x;
@@ -216,14 +151,14 @@ void State2_Zaghen::calcPerspective_Distance(double side2, double side4) {
 	this->qrStuff.temp_qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
 }
 
-void State2_Zaghen::calcCenter_VerticalRot() {
+bool State2_Zaghen::isCentered() {
 
-	//int x_center = average(temp_qr_info.x0, temp_qr_info.x2);
-	//int y_center = average(temp_qr_info.y0, temp_qr_info.y2);
-
-	int dx = this->qrStuff.temp_qr_info.x1 - this->qrStuff.temp_qr_info.x0;
-	int dy = this->qrStuff.temp_qr_info.y1 - this->qrStuff.temp_qr_info.y0;
-	this->qrStuff.temp_qr_info.vertical_rotation = getAngleV(dy, dx) + PIDEG;
+	int x_center = average(qrStuff.temp_qr_info.x0, qrStuff.temp_qr_info.x2);
+	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
+	if ( abs( x_center - frameCols ) < centering_tolerance )
+		return true;
+	printf("NOT centered\n");
+	return false;
 }
 
 void State2_Zaghen::printQRInfo() {
@@ -234,37 +169,10 @@ void State2_Zaghen::printQRInfo() {
     printf("*********************************************\n\n");
 }
 
-/** Extrapolate QR informations. -----------------------------------------------------------------*/
-void State2_Zaghen::extrapolate_qr_informations() {
-
-	copyCorners();
-	calcCenter_VerticalRot();
-
-	/* p0        side1        p1
-       ▄▄▄▄▄▄▄ ▄▄▄▄▄ ▄▄▄▄▄▄▄
-       █ ▄▄▄ █  █▄▀  █ ▄▄▄ █
-    s  █ ███ █  ▀█▀▄ █ ███ █ s
-    i  █▄▄▄▄▄█ ▄ ▄▀█ █▄▄▄▄▄█ i
-    d  ▄▄ ▄▄ ▄ ▀██▀█ ▄     ▄ d
-    e  ▀▀█▄▀█▄▄▄   ▀▄█ █▄█▀  e
-    4  ▀ ███▀▄█▄▄█▀  ▄  ██▀█ 2
-       ▄▄▄▄▄▄▄ ▀▀█▀█▄▄█▄▀ ▀█
-       █ ▄▄▄ █ ▄ ▄██▀▄█▀█▄ █
-       █ ███ █ ▀▄█▀▀ ▄ ▀▀█▄▄
-       █▄▄▄▄▄█ █▄▀▄ ▀▀ ▀▄█▄▀
-     p3        side3        p2    */
-
-	double side2 = pitagora((double) (this->qrStuff.temp_qr_info.x1 - this->qrStuff.temp_qr_info.x2), (double)(this->qrStuff.temp_qr_info.y1 - this->qrStuff.temp_qr_info.y2));
-	double side4 = pitagora((double) (this->qrStuff.temp_qr_info.x3 - this->qrStuff.temp_qr_info.x0), (double)(this->qrStuff.temp_qr_info.y3 - this->qrStuff.temp_qr_info.y0));
-
-	calcPerspective_Distance(side2, side4);
-
-	gettimeofday(&this->qrStuff.temp_qr_info.timestamp_recognition, NULL);
-}
-
 /** Copies payload from data to info structure. --------------------------------------------------*/
 void State2_Zaghen::copyPayload() {
 
+	this->qrStuff.temp_qr_info.message_length = MAXLENGTH;
 	int payload_len = this->qrStuff.data->payload_len;
     int payloadTruncated = 0;
     if(payload_len > MAXLENGTH-1){
@@ -282,7 +190,7 @@ void State2_Zaghen::resetQR() {
 	this->qrStuff.q = quirc_new();
 	if(!this->qrStuff.q) {
 		perror("Can't create quirc object");
-		ThreadOnMutex::closeAllThreads();
+		exit(1);
 	}
 	this->qrStuff.temp_qr_info.distance = 0;
 	this->qrStuff.temp_qr_info.message_length = 0;
@@ -292,16 +200,19 @@ void State2_Zaghen::resetQR() {
 	this->qrStuff.temp_qr_info.x0 = this->qrStuff.temp_qr_info.y0 = this->qrStuff.temp_qr_info.x1 = this->qrStuff.temp_qr_info.y1 = this->qrStuff.temp_qr_info.x2 = this->qrStuff.temp_qr_info.y2 = this->qrStuff.temp_qr_info.x3 = this->qrStuff.temp_qr_info.y3 = 0;
 }
 
-
 /** Processes QR code. ---------------------------------------------------------------------------*/
-int State2_Zaghen::processQR() {
+bool State2_Zaghen::preProcessing(Mat frame_BW) {
 
-  quirc_end(this->qrStuff.q);
+	cv_to_quirc(this->qrStuff.q, frame_BW);
+	quirc_end(this->qrStuff.q);
 
   int count = quirc_count(this->qrStuff.q);
   if(count == 0){ // no QR codes found.
-    return 0;
+    return false;
   }
+  if(count > 1) {
+	cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl; 
+	}
 
   struct quirc_code code2;
   struct quirc_data data2;
@@ -310,32 +221,86 @@ int State2_Zaghen::processQR() {
   quirc_extract(this->qrStuff.q, 0, &code2); // only recognize the first QR code found in the image
   err = quirc_decode(&code2, &data2);
 
-  if(err == 0){
-    while(pthread_mutex_lock(this->getWorldKB().getMutex()) != 0)
-	{ ; }
-
-    this->qrStuff.temp_qr_info.message_length = MAXLENGTH;
-    extrapolate_qr_informations();
-    copyPayload();
-    printQRInfo(); // the only excerpt of a QR that should be printed in a release.
-
-    while(pthread_mutex_unlock(this->getWorldKB().getMutex()) != 0)
-    { ; }
+  if(!err) {
+	copyPayload();
+	if(this->getWorldKB()->isQRInKB(this->qrStuff.temp_qr_info.qr_message)) {
+		cout << "QR code labelled " << this->qrStuff.temp_qr_info.qr_message << "is already in KB." << endl;
+		return false;
+	}
+	copyCorners();
+	if (!isCentered())
+		return false;
   }
-  return 0;
-}
-//---------------------------------------------------------------------------------------------------------------------------
-
-/** Thread Behaviour call handler. ---------------------------------------------------------------*/
-void* ExplorerFSM::call_threadBehaviour(void * arg){
-	ExplorerFSM* temp = (ExplorerFSM*) arg;
-	temp->threadBehaviour();
-	return NULL;
+  return true;
 }
 
-/** Scanning function. ---------------------------------------------------------------------------*/
-void* ExplorerFSM::threadBehaviour() {
+// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
+State3_StatusChecking::State3_StatusChecking(WorldKB* _worldKB) : State(_worldKB)
+{
+	cout << "   State4_StatusChecking state\n";
+}
+
+State3_StatusChecking::~State3_StatusChecking() { ; }
+
+State* State3_StatusChecking::executeState()
+{
+  delete this;
+  return new State4_Localizing(this->getWorldKB());
+}
+
+// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
+
+State4_Localizing::State4_Localizing(WorldKB* _worldKB) : State(_worldKB)
+{
+	cout << "   State5_Localizing state\n";
+}
+
+State4_Localizing::~State4_Localizing() { ; }
+
+State* State4_Localizing::executeState()
+{
+  delete this;
+  return NULL;
+}
+
+// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
+
+State5_Error::State5_Error(WorldKB* _worldKB) : State(_worldKB)
+{
+	cout << "   State5_Localizing state\n";
+}
+
+State5_Error::~State5_Error() { ; }
+
+State* State5_Error::executeState()
+{
+  delete this;
+  return NULL;
+}
+
+// --------------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ----------------
+// --------------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ----------------
+// --------------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ----------------
+// --------------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ----------------
+
+ExplorerFSM::ExplorerFSM(int _camera_id) 
+{
+	this->camera_id = _camera_id;
+	WorldKB* temp = new WorldKB;
+	this->worldKB = *temp;
+	this->currentState = new State1_Init(&(this->worldKB));
+}
+
+ExplorerFSM::~ExplorerFSM() { ; }
+
+void ExplorerFSM::setCurrentState(State *s)
+{
+	currentState = s;
+}
+
+void* ExplorerFSM::runFSM()
+{
 	State* temp;
 
 	while(1) {
@@ -349,4 +314,3 @@ void* ExplorerFSM::threadBehaviour() {
 	}
 	return NULL;
 }
-

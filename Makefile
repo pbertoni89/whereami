@@ -30,7 +30,7 @@ OPT=
 
 all: libquirc.so whereami calibration client
 
-whereami: src/util.o src/worldKB.o src/threadonmutex.o src/server.o src/explorerFSM.o src/explorer.o src/whereami.o libquirc.a
+whereami: src/util.o src/worldKB.o src/threadonmutex.o src/explorerFSM.o src/whereami.o libquirc.a
 	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 calibration: src/util.o src/calibration.o  libquirc.a

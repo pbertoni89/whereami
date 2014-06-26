@@ -41,13 +41,10 @@ int main(int argc, char **argv){
 	  printf("aaa");*/
 
 	_camera_id = 0; printf("aaa1 %d", _camera_id);
-	WorldKB worldKB = WorldKB(); printf("aaa2 %d", _camera_id);
+	 printf("aaa2 %d", _camera_id);
 
-	//Server server = Server(worldKB); printf("aaa3 %d", _camera_id);
-
-	ExplorerFSM explorerFSM = ExplorerFSM(worldKB, _camera_id); printf("aaa4 %d", _camera_id);
+	ExplorerFSM explorerFSM = ExplorerFSM(_camera_id); printf("aaa4 %d", _camera_id);
 	explorerFSM.runFSM();
 
-	pthread_exit(NULL);
-	return 55;
+	return 0;
 }
