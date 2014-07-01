@@ -72,10 +72,10 @@ State* State2_QR::executeState()
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE )
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 		this->getWorldKB()->incrementCameraAngle();
-		printf("incrementing camera angle. now is %d\n", this->getWorldKB()->getCameraAngle());
+		printf("%d\n", this->getWorldKB()->getCameraAngle());
 	}
-	this->processing();
-	  cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
+
+	 // cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
 
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
@@ -112,6 +112,9 @@ bool State2_QR::processing() {
 	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
 	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
 	calcPerspective_Distance(side2, side4);
+	cout<<"\nPush del QR con messaggio: "<<this->qrStuff.qr_info.qr_message<<" distanza: "<<this->qrStuff.qr_info.distance<<"\n";
+	this->getWorldKB()->pushQR(& this->qrStuff.qr_info);
+	cout << this->getWorldKB()->get_qr_found();
 	return false;
 }
 
@@ -210,22 +213,25 @@ bool State2_QR::preProcessing() {
    if(err==0) {
 	   int len_payload=0;
 	   len_payload=copyPayload();
-	   char* label = this->qrStuff.qr_info.qr_message;
+	    char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
 		if(len_payload>min_payload &&  isCentered()){
-
-			  if(this->getWorldKB()->isQRInStaticKB(label)) {
-			  	cout << "\t" << label << " is known in Static KB: continue" << endl;
-			  	if(this->getWorldKB()->isQRInDynamicKB(label)) {
-			  		cout << "\t" << label << " is known in Dynamic KB: false" << endl;
-			  		return false;
-			  	}
-			  	cout << "\t" << label << " is NOT known in Dynamic KB: true" << endl;
-			  	return true;
+			if(this->getWorldKB()->isQRInStaticKB(label) && !this->getWorldKB()->isQRInDynamicKB(label)){
+					cout << "Nuovo QR!\n";
+					cout <<"Payload; " << label;
+					this->processing();
+					return false;
+				}else{
+						//cout << "Non e' nella statica o e' già presente nella dinamica, in particolare: ";
+						if(!this->getWorldKB()->isQRInStaticKB(label) )
+							//cout << "Non è nella statica quindi non può esistere";
+						if(this->getWorldKB()->isQRInDynamicKB(label))
+							//cout << "è nella dinamica quindi è un QR già conosiuto";
+						return false; //ignora il qr
 			  }
-			  cout << "\t" << label << " is NOT known in Static KB: false" << endl;
 		}
-	}
+			  //cout << "\t" << label << " is NOT known in Static KB: false" << endl;
+		}
   return false;
 }
 

@@ -36,7 +36,8 @@ int getOpt(int cargc, char** cargv) {
 /** MAIN function. -------------------------------------------------------------------------------*/
 int main(int argc, char **argv){
 
-	_camera_id = 0; printf("aaa1 %d", _camera_id);
+	_camera_id =0;
+	printf("aaa1 %d", _camera_id);
 	 printf("aaa2 %d", _camera_id);
 
 	ExplorerFSM explorerFSM = ExplorerFSM(_camera_id); printf("aaa4 %d", _camera_id);
