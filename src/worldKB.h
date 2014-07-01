@@ -2,12 +2,18 @@
 #define WORLDKB_H_
 
 #include <stdio.h>
-#include <string.h>
+#include <string>
 #include <stdlib.h>
+#include <vector>
+#include <algorithm>
+//#include <unordered_map>
+#include <iterator>
 
 #include "quirc_internal.h"
 #include "util.h"
 #include "message.h"
+
+using namespace std;
 
 #define MAXQR 10
 #define MAXSTRING 3
@@ -20,6 +26,8 @@
 /** How much degrees over 360° would be incremented during each search step. */
 #define CAMERA_STEP_ANGLE 1
 
+// ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~
+
 typedef struct PatPoint {
 	int x, y;
 } Point2D;
@@ -31,12 +39,21 @@ typedef struct QRTable {
 } QRTable;
 
 /** A fact in the KB which represent a successful recognition of a QR code from the camera. */
-typedef struct Landmark {
+class Landmark {
+
+private:
 	/** All info related to the QR processed which represent a landmark.*/
 	QRInfos qr_info;
 	/** Angle (deg) between segments AR and axis y. */
 	int phi_angle;
-} Landmark;
+public:
+		/** Constructor knows only of the QRInfo structure. Phi angle needs to be calculated later. */
+		Landmark(QRInfos qr_info);
+		~Landmark();
+		QRInfos getQRInfos();
+		void setPhiAngle(int _phi_angle);
+		int getPhiAngle();
+};
 
 /** A fact in the KB which contains all the information gathered from a pair of landmarks. */
 typedef struct Triangle {
@@ -56,6 +73,8 @@ typedef struct Triangle {
 	Point2D robot_coords;
 } Triangle;
 
+// ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~
+
 /** this class should represent the whole knowledge base the Explore agent has on the world. 
  * It is the resource under race condition: the Explore has to WRITE on it when it get some relevant 
  * information on the world where it is (single QRs, localization proposals) 
@@ -67,23 +86,19 @@ private:
 	 * E.g., if camera starts from -90deg, and has turned right till 0deg, camera_angle will be 90deg.*/
 	int camera_angle;
 	/** Set of landmarks acquired during exploration. */
-	Landmark* landmarks;
+	vector<Landmark> landmarks;
 	/** Set of triangles which can be built over landmarks. */
 	Triangle* triangles;
-	/** Number of unique QR codes found and processed in the exploration. That is, actual size of landmarks.*/
-	int qr_found;
 	/** QR Static table. */
 	QRTable qrTable;
 	/** Static initialization of the QR Table, In the future, it will be read from a file. */
-	void createStaticQRTable();
+	void createStaticKB();
 
 public:
 	WorldKB();
 	~WorldKB();
 	/** Pushes a QRInfo just processed to the worldKB */
 	void pushQR(QRInfos* qr_info);
-	// this will be deleted when worldKB will be really implemented.
-	QRInfos fooQR;
 	/** Gets the actual number of QR found. Unique way to access this number. */
 	int get_qr_found();
 	/** Unique external way to know the camera angle of the robot. */
@@ -92,6 +107,9 @@ public:
 	void setCameraAngle(int _camera_angle);
 	/** Unique external way to increment buy a fixed quantity the camera angle of the robot. */
 	void incrementCameraAngle();
-	bool isQRInKB(string label);
+	/** Checks whether QR `label` has already been recognized. */
+	bool isQRInDynamicKB(string label);
+	/** Checks whether QR `label` is known in the static table. */
+	bool isQRInStaticKB(string label);
 };
 #endif
