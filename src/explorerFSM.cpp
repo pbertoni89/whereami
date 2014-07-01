@@ -194,7 +194,7 @@ void State2_QR::resetQR() {
 
 /** Processes QR code. ---------------------------------------------------------------------------*/
 bool State2_QR::preProcessing() {
-	int payloadMinimo=2;
+	int min_payload=2;
 	quirc_end(this->qrStuff.q);
   int count = quirc_count(this->qrStuff.q);
   if(count == 0){ // no QR codes found.
@@ -208,13 +208,22 @@ bool State2_QR::preProcessing() {
   quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code)); // only recognize the first QR code found in the image
   err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
    if(err==0) {
-	   int lunghezza_payload=0;
-	   lunghezza_payload=copyPayload();
+	   int len_payload=0;
+	   len_payload=copyPayload();
+	   char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
-		if(lunghezza_payload>payloadMinimo &&  isCentered()){                                                     //&& this->getWorldKB()->isQRInKB(this->qrStuff.qr_info.qr_message)
-			  cout << "\t QR PAYLOAD: " << this->qrStuff.qr_info.qr_message << endl;
-			  return true;
-			  // return true; // ho finito tutti e due i controlli (centrato E non in KB); posso andare avanti
+		if(len_payload>min_payload &&  isCentered()){
+
+			  if(this->getWorldKB()->isQRInStaticKB(label)) {
+			  	cout << "\t" << label << " is known in Static KB: continue" << endl;
+			  	if(this->getWorldKB()->isQRInDynamicKB(label)) {
+			  		cout << "\t" << label << " is known in Dynamic KB: false" << endl;
+			  		return false;
+			  	}
+			  	cout << "\t" << label << " is NOT known in Dynamic KB: true" << endl;
+			  	return true;
+			  }
+			  cout << "\t" << label << " is NOT known in Static KB: false" << endl;
 		}
 	}
   return false;
