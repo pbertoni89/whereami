@@ -25,12 +25,12 @@ LIB_OBJ = \
     lib/quirc.o \
     lib/version_db.o
 LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
-OPT=
+OPT= #aggiunto da pat per le unordered map -std=gnu++11 -std=c++0x
 #-O3
 
 all: libquirc.so whereami calibration client
 
-whereami: src/util.o src/worldKB.o src/threadonmutex.o src/explorerFSM.o src/whereami.o libquirc.a
+whereami: src/util.o src/worldKB.o src/explorerFSM.o src/whereami.o libquirc.a
 	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`
 
 calibration: src/util.o src/calibration.o  libquirc.a
@@ -49,10 +49,10 @@ libquirc.so: $(LIB_SOBJ)
 
 %.o: %.cpp
 	#cc $(OPT) $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
-	g++ -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
+	g++ $(OPT) -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
 
 %.lo: %.cpp
-	cc $(OPT) -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
+	cc -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp
 
 clean:
 	rm -f */*.o
