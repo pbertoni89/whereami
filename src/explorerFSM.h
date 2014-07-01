@@ -2,7 +2,7 @@
 #define EXPLORERFSM_H
 #include <iostream>
 using namespace std;
-
+#include <unistd.h>
 #include "worldKB.h"
 #include <opencv/cv.h>
 #include <opencv/highgui.h>

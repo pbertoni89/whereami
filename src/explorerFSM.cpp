@@ -1,22 +1,10 @@
 #include "explorerFSM.h"
-/*
- *26/06/2014
- *Riusciamo a leggere il payload.
- *Ora dobbiamo:
- * 1. Controllare che il QR non sia già in KB
- * 2. Centrarlo cioè far andare avanti il motorino fino a chè non è centrato
- * 3. inserimenti nella KB
- * 1. Fare un piccolo parser per cui dato il payload estraggo le coordinate
- */
 State::State(WorldKB* _worldKB) //: worldKB(_worldKB)
 {
-	//NON LA VEDEEEEEEEEEEE!!!!!!!!!!
 	this->worldKB = _worldKB;
-	//cout << "   Create state\n ";
 }
 
-State::~State()
-{
+State::~State(){
 	//cout << "   Delete state\n";
 }
 
@@ -30,9 +18,9 @@ void State::setWorldKB(WorldKB* kb)
 }
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB) {
-	//WorldKB* temp = new WorldKB; //controllare che funzioni correttamente; a esempio che sovrascriva le vecchie strutture
-	//printf("allocated worldkb pointer at %p\n", temp);
-	//his->setWorldKB(temp);
+	WorldKB* temp = new WorldKB; //controllare che funzioni correttamente; a esempio che sovrascriva le vecchie strutture
+	printf("allocated worldkb pointer at %p\n", temp);
+	this->setWorldKB(temp);
 }
 State1_Init::~State1_Init() { ; }
 
@@ -46,10 +34,9 @@ State* State1_Init::executeState(void)
 
 State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
-	//cout << "Entered in State 2 Constructior." << endl;
 	camera_id = 0;
 	int camera_angle = this->getWorldKB()->getCameraAngle();
-	//qrStuff.temp_qr_info.message_length = -1;
+
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
 	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
 	qrStuff.qr_info = *temp;
@@ -68,6 +55,7 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 	resetQR();
 
 	capture.open(camera_id);
+
 	if (!capture.isOpened()) {
 		printf("Error during capture opening.\n");
 		exit(1);
@@ -81,13 +69,14 @@ State2_QR::~State2_QR() { ; }
 
 State* State2_QR::executeState()
 {
-
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE )
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 		this->getWorldKB()->incrementCameraAngle();
 		printf("incrementing camera angle. now is %d\n", this->getWorldKB()->getCameraAngle());
 	}
 	this->processing();
+	  cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
+
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
 	delete this;
@@ -100,8 +89,8 @@ bool State2_QR::searching()
 	if(!this->qrStuff.q) {
 		perror("Can't create quirc object");
 		exit(1);
-	}
-																	//resetQR(); // MOLTO ragionevole spostarlo
+}
+
 	Mat frame0, frame, frame_undistort, frame_BW;
 	if( !this->capture.isOpened() )
 		{ perror("Error opening capture.\n"); exit(1); }
@@ -117,12 +106,9 @@ bool State2_QR::searching()
 	cv_to_quirc(this->qrStuff.q, frame_BW);
 	if (preProcessing() == true)
 		return true;
-	//cout << "searching sta per tornare false";
-	// qua andrà atra roba credo
 	return false; //handle
 }
 bool State2_QR::processing() {
-	
 	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
 	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
 	calcPerspective_Distance(side2, side4);
@@ -147,7 +133,6 @@ int State2_QR::scaleQR(double side) {
 
 /** Calculate perspective rotation and distance of the QR. ---------------------------------------*/
 void State2_QR::calcPerspective_Distance(double side2, double side4) {
-
 	int qr_pixel_size = average(side2, side4);
 	int s2_dist = this->scaleQR(side2);
 	int s4_dist = this->scaleQR(side4);
@@ -163,13 +148,16 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 }
 
 bool State2_QR::isCentered() {
-
+	centering_tolerance=40;			//LA TOLLERANZA PER LE PROVE IN TESISTI VA BENE A 40 MA PER IL LABO ANDRA' MESSA A 3. :)
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
-	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
-	if ( abs( x_center - frameCols ) < centering_tolerance )
+	//printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
+	if (abs( x_center - frameCols/2 ) < centering_tolerance ){
+		printf("\nQR rilevato e centrato\n");
 		return true;
-	printf("NOT centered\n");
-	return false;
+	}else{
+		printf("\nQR rilevato ma non centrato\n");
+		return false;
+	}
 }
 
 void State2_QR::printQRInfo() {
@@ -182,10 +170,8 @@ void State2_QR::printQRInfo() {
 
 /** Copies payload from data to info structure. --------------------------------------------------*/
 int State2_QR::copyPayload() {
-// cout << "qui passo1\n";
 	this->qrStuff.qr_info.message_length = MAXLENGTH;
 	int payload_len = this->qrStuff.data.payload_len;
-	//cout << payload_len;
     int payloadTruncated = 0;
     if(payload_len > MAXLENGTH-1){
       payload_len = MAXLENGTH-1;  // truncate long payloads
@@ -208,10 +194,8 @@ void State2_QR::resetQR() {
 
 /** Processes QR code. ---------------------------------------------------------------------------*/
 bool State2_QR::preProcessing() {
-
-	//cout << "entered PREprocessing. " <<endl;
+	int payloadMinimo=2;
 	quirc_end(this->qrStuff.q);
-
   int count = quirc_count(this->qrStuff.q);
   if(count == 0){ // no QR codes found.
     return false;
@@ -219,31 +203,18 @@ bool State2_QR::preProcessing() {
   if(count > 1) {
 	cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl;
 	}
-
-  struct quirc_code code2;
-  struct quirc_data data2;
   quirc_decode_error_t err;
 
-  //quirc_extract(this->qrStuff.q, 0, &code2); // only recognize the first QR code found in the image
- // err = quirc_decode(&code2, &data2);
   quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code)); // only recognize the first QR code found in the image
   err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
-  //cout << " QR should now be deconode. err =" << err<< endl;
    if(err==0) {
-	 //cout << "non c'e stato errore" << endl;
-	  //cout << "qui passo";
-	   int ty=0;
-	  ty=copyPayload();
-		if(this->getWorldKB()->isQRInKB(this->qrStuff.qr_info.qr_message)) {
-			//cout << "QR: " << this->qrStuff.qr_info.qr_message << "is already in KB." << endl;
-			return false;
-		}
+	   int lunghezza_payload=0;
+	   lunghezza_payload=copyPayload();
 		copyCorners();
-		if (!isCentered())
-			return false;
-		if(ty>2){
-			  cout << "\t QR: " << this->qrStuff.qr_info.qr_message << endl;
-		 return true; // ho finito tutti e due i controlli (centrato E non in KB); posso andare avanti
+		if(lunghezza_payload>payloadMinimo &&  isCentered()){                                                     //&& this->getWorldKB()->isQRInKB(this->qrStuff.qr_info.qr_message)
+			  cout << "\t QR PAYLOAD: " << this->qrStuff.qr_info.qr_message << endl;
+			  return true;
+			  // return true; // ho finito tutti e due i controlli (centrato E non in KB); posso andare avanti
 		}
 	}
   return false;
@@ -251,16 +222,14 @@ bool State2_QR::preProcessing() {
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
-State3_StatusChecking::State3_StatusChecking(WorldKB* _worldKB) : State(_worldKB)
-{
-	//cout << "   State4_StatusChecking state\n";
+State3_StatusChecking::State3_StatusChecking(WorldKB* _worldKB) : State(_worldKB){
+//cout << "   State4_StatusChecking state\n";
 }
 
 State3_StatusChecking::~State3_StatusChecking() { ; }
 
 State* State3_StatusChecking::executeState()
-{
-	//cout << "Sono nello stato 3\n";
+{//cout << "Sono nello stato 3\n";
   delete this;
   return new State4_Localizing(this->getWorldKB());
 }
@@ -268,8 +237,7 @@ State* State3_StatusChecking::executeState()
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
 State4_Localizing::State4_Localizing(WorldKB* _worldKB) : State(_worldKB)
-{
-	//cout << "   State5_Localizing state\n";
+{//cout << "   State5_Localizing state\n";
 }
 
 State4_Localizing::~State4_Localizing() { ; }
@@ -283,8 +251,7 @@ State* State4_Localizing::executeState()
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
 State5_Error::State5_Error(WorldKB* _worldKB) : State(_worldKB)
-{
-	//cout << "   State5_Localizing state\n";
+{//cout << "   State5_Localizing state\n";
 }
 
 State5_Error::~State5_Error() { ; }
@@ -318,7 +285,6 @@ void ExplorerFSM::setCurrentState(State *s)
 void* ExplorerFSM::runFSM()
 {
 	State* temp;
-
 	while(1) {
 		temp = currentState->executeState();
 		if(temp)
