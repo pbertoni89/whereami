@@ -84,7 +84,7 @@ State* State2_QR::executeState()
 		string support = comando.str();
 		cout << "sto chiamando : " << support << endl;
 		system(support.c_str());
-		sleep(0.5);
+		sleep(1);
 	}
 
 	 // cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
