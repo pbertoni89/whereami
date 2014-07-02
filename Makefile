@@ -49,7 +49,7 @@ libquirc.so: $(LIB_SOBJ)
 
 %.o: %.cpp
 	#cc $(OPT) $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
-	g++ $(OPT) -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
+	g++ -std=c++11 $(OPT) -O3 $(QUIRC_CFLAGS) -o $*.o -c $*.cpp
 
 %.lo: %.cpp
 	cc -fPIC $(QUIRC_CFLAGS) -o $*.lo -c $*.cpp

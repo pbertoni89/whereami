@@ -11,7 +11,7 @@ vector<parsedQr> Parser::getParsedTable(){
 	return parsed;
 	}
 
-
+/** Prende il file e costruisce un vettore di stringhe in cui ognuna è una riga del file. */
 vector<string> Parser::parseLines(){
 std::ifstream in("splitlines.txt");
 int i=0;
@@ -30,6 +30,7 @@ cout<<"Array delle righe creato. Ora in ogni riga c'e scritto:\n";
 return array;
 }
 
+/** Per ogni riga del file (che è diventata una stringa) estrae la terna di valori in QR1(x,y,z) */
 vector<parsedQr> Parser::parseSecond(vector<string> array){
 // dati per la seconda parte
 cout<<"--------------------------\nPARTE SECONDA\n-------------------------------\n";

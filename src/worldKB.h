@@ -2,11 +2,15 @@
 #define WORLDKB_H_
 
 #include <stdio.h>
-#include <string>
 #include <stdlib.h>
+
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <fstream>
+
 #include <vector>
 #include <algorithm>
-//#include <unordered_map>
 #include <iterator>
 
 #include "quirc_internal.h"
@@ -22,7 +26,7 @@ using namespace std;
 #define TRIANGLES 1
 /** We follow the nomenclature used in our localization algorithm schema. */
 #define CAMERA_INIT_ANGLE -90
-#define CAMERA_END_ANGLE 900
+#define CAMERA_END_ANGLE 90
 /** How much degrees over 360° would be incremented during each search step. */
 #define CAMERA_STEP_ANGLE 1
 
@@ -32,14 +36,14 @@ typedef struct PatPoint {
 	int x, y;
 } Point2D;
 
-/** A fact in the KB which represent a static parsed-from-a-file table of the Landmark positions in the world. */
-typedef struct QRTable {
-	Point2D qr_coords[MAXQR];
-	string qr_label[MAXQR];
-} QRTable;
+/** A single QR bounded by two cartesian cooordinates and labelled by an unique ID. */
+typedef struct Landmark {
+	Point2D qr_points;
+	string qr_label;
+} Landmark;
 
 /** A fact in the KB which represent a successful recognition of a QR code from the camera. */
-class Landmark {
+class RecognizedLandmark {
 
 private:
 	/** All info related to the QR processed which represent a landmark.*/
@@ -48,8 +52,8 @@ private:
 	int phi_angle;
 public:
 		/** Constructor knows only of the QRInfo structure. Phi angle needs to be calculated later. */
-		Landmark(QRInfos qr_info);
-		~Landmark();
+		RecognizedLandmark(QRInfos qr_info);
+		~RecognizedLandmark();
 		QRInfos getQRInfos();
 		void setPhiAngle(int _phi_angle);
 		int getPhiAngle();
@@ -58,9 +62,9 @@ public:
 /** A fact in the KB which contains all the information gathered from a pair of landmarks. */
 typedef struct Triangle {
 	/** REFERENCES to real Landmarks found during exploration. This is leftmost landmark of the triangle. */
-	Landmark& landmarkA;
+	RecognizedLandmark& landmarkA;
 	/** REFERENCES to real Landmarks found during exploration. This is rightmost landmark of the triangle. */
-	Landmark& landmarkB;
+	RecognizedLandmark& landmarkB;
 	/** Angle (deg) between segment AR and AB. */
 	int alpha_angle;
 	/** Angle (deg) between segment AB and BR. Probably unused.*/
@@ -85,14 +89,14 @@ private:
 	/** RELATIVE rotation of the robot camera with respect to INITIAL angle.
 	 * E.g., if camera starts from -90deg, and has turned right till 0deg, camera_angle will be 90deg.*/
 	int camera_angle;
-	/** Set of landmarks acquired during exploration. */
-	vector<Landmark> landmarks;
+	/** Set of recognized landmarks acquired during exploration. */
+	vector<RecognizedLandmark> dynamicKB;
 	/** Set of triangles which can be built over landmarks. */
 	Triangle* triangles;
-	/** QR Static table. */
-	QRTable qrTable;
+	/** A set of facts in the KB which represent a static parsed-from-a-file table of the Landmark positions in the world. */
+	vector<Landmark> staticKB;
 	/** Static initialization of the QR Table, In the future, it will be read from a file. */
-	void createStaticKB();
+	void parseStaticKB(string filename);
 
 public:
 	WorldKB();
@@ -111,5 +115,7 @@ public:
 	bool isQRInDynamicKB(string label);
 	/** Checks whether QR `label` is known in the static table. */
 	bool isQRInStaticKB(string label);
+	/** Prints out static KB facts. */
+	void printStaticKB();
 };
 #endif

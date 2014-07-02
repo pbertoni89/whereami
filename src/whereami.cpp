@@ -1,6 +1,5 @@
 #include "worldKB.h"
 #include "explorerFSM.h"
-#include "server.h"
 
 int _camera_id = 0;
 
@@ -37,10 +36,8 @@ int getOpt(int cargc, char** cargv) {
 int main(int argc, char **argv){
 
 	_camera_id =0;
-	printf("aaa1 %d", _camera_id);
-	 printf("aaa2 %d", _camera_id);
 
-	ExplorerFSM explorerFSM = ExplorerFSM(_camera_id); printf("aaa4 %d", _camera_id);
+	ExplorerFSM explorerFSM = ExplorerFSM(_camera_id);
 	explorerFSM.runFSM();
 
 	return 0;
