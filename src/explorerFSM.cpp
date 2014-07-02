@@ -163,7 +163,7 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 }
 
 bool State2_QR::isCentered() {
-	centering_tolerance=40;			//LA TOLLERANZA PER LE PROVE IN TESISTI VA BENE A 40 MA PER IL LABO ANDRA' MESSA A 3. :)
+	centering_tolerance=3;			//LA TOLLERANZA PER LE PROVE IN TESISTI VA BENE A 40 MA PER IL LABO ANDRA' MESSA A 3. :)
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
 	//printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
 	if (abs( x_center - frameCols/2 ) < centering_tolerance ){
