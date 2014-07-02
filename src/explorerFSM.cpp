@@ -4,9 +4,7 @@ State::State(WorldKB* _worldKB) //: worldKB(_worldKB)
 	this->worldKB = _worldKB;
 }
 
-State::~State(){
-	//cout << "   Delete state\n";
-}
+State::~State(){;}
 
 WorldKB* State::getWorldKB()
 {
@@ -84,7 +82,7 @@ State* State2_QR::executeState()
 		string support = comando.str();
 		cout << "sto chiamando : " << support << endl;
 		system(support.c_str());
-		sleep(1);
+		//sleep(1);
 	}
 
 	 // cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
@@ -120,6 +118,47 @@ bool State2_QR::searching()
 		return true;
 	return false; //handle
 }
+
+/** Processes QR code. ---------------------------------------------------------------------------*/
+bool State2_QR::preProcessing() {
+	int min_payload=2;
+	quirc_end(this->qrStuff.q);
+  int count = quirc_count(this->qrStuff.q);
+  if(count == 0){ // no QR codes found.
+    return false;
+  }
+  if(count > 1) {
+	cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl;
+	}
+  quirc_decode_error_t err;
+
+  quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code)); // only recognize the first QR code found in the image
+  err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
+   if(err==0) {
+	   int len_payload=0;
+	   len_payload=copyPayload();
+	    char* label = this->qrStuff.qr_info.qr_message;
+		copyCorners();
+		if(len_payload>min_payload &&  isCentered()){
+			if(this->getWorldKB()->isQRInStaticKB(label) && !this->getWorldKB()->isQRInDynamicKB(label)){
+					cout << "Nuovo QR!\n";
+					cout <<"Payload; " << label;
+					this->processing();
+					return false;
+				}else{
+						cout << label << "  Non e' nella statica o e' già presente nella dinamica, in particolare: ";
+						if(!this->getWorldKB()->isQRInStaticKB(label) )
+							cout << "Non è nella statica quindi non può esistere";
+						if(this->getWorldKB()->isQRInDynamicKB(label))
+							cout << "è nella dinamica quindi è un QR già conosiuto";
+						return false; //ignora il qr
+			  }
+		}
+			  //cout << "\t" << label << " is NOT known in Static KB: false" << endl;
+		}
+  return false;
+}
+
 bool State2_QR::processing() {
 	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
 	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
@@ -205,46 +244,6 @@ void State2_QR::resetQR() {
 	this->qrStuff.qr_info.perspective_rotation = 0;
 	this->qrStuff.qr_info.vertical_rotation = 0;
 	this->qrStuff.qr_info.x0 = this->qrStuff.qr_info.y0 = this->qrStuff.qr_info.x1 = this->qrStuff.qr_info.y1 = this->qrStuff.qr_info.x2 = this->qrStuff.qr_info.y2 = this->qrStuff.qr_info.x3 = this->qrStuff.qr_info.y3 = 0;
-}
-
-/** Processes QR code. ---------------------------------------------------------------------------*/
-bool State2_QR::preProcessing() {
-	int min_payload=2;
-	quirc_end(this->qrStuff.q);
-  int count = quirc_count(this->qrStuff.q);
-  if(count == 0){ // no QR codes found.
-    return false;
-  }
-  if(count > 1) {
-	cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl;
-	}
-  quirc_decode_error_t err;
-
-  quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code)); // only recognize the first QR code found in the image
-  err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
-   if(err==0) {
-	   int len_payload=0;
-	   len_payload=copyPayload();
-	    char* label = this->qrStuff.qr_info.qr_message;
-		copyCorners();
-		if(len_payload>min_payload &&  isCentered()){
-			if(this->getWorldKB()->isQRInStaticKB(label) && !this->getWorldKB()->isQRInDynamicKB(label)){
-					cout << "Nuovo QR!\n";
-					cout <<"Payload; " << label;
-					this->processing();
-					return false;
-				}else{
-						cout << label << "  Non e' nella statica o e' già presente nella dinamica, in particolare: ";
-						if(!this->getWorldKB()->isQRInStaticKB(label) )
-							cout << "Non è nella statica quindi non può esistere";
-						if(this->getWorldKB()->isQRInDynamicKB(label))
-							cout << "è nella dinamica quindi è un QR già conosiuto";
-						return false; //ignora il qr
-			  }
-		}
-			  //cout << "\t" << label << " is NOT known in Static KB: false" << endl;
-		}
-  return false;
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------

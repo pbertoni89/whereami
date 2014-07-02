@@ -61,7 +61,6 @@ private:
 	/** Maximum absolute number of pixels measuring distance from QR center and Frame center. */
 	int centering_tolerance;
 	VideoCapture capture;
-	int camera_angle;
 	/** Alcune caratteristiche del QR (qua in fase di PREPROCESSING vengono scritte qua;
 	 * la struttura verrà poi passata allo stato di PROCESSING per il calcolo della distanza.
 	 * il processing la pusherà poi in worldKB, dove verrà COPIATA, e le strutture temporanee saranno pulite. */

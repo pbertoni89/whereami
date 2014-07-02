@@ -28,7 +28,7 @@ using namespace std;
 #define CAMERA_INIT_ANGLE -90
 #define CAMERA_END_ANGLE 90
 /** How much degrees over 360° would be incremented during each search step. */
-#define CAMERA_STEP_ANGLE 1
+#define CAMERA_STEP_ANGLE 5
 
 // ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~
 
