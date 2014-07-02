@@ -33,6 +33,7 @@ all: libquirc.so whereami calibration client
 
 whereami: src/util.o src/worldKB.o src/explorerFSM.o src/whereami.o libquirc.a
 	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`
+	g++ src/scorri_camera.cpp -o scorri_camera
 
 calibration: src/util.o src/calibration.o  libquirc.a
 	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`

@@ -71,14 +71,15 @@ State2_QR::~State2_QR() { ; }
 
 State* State2_QR::executeState()
 {
-	thread t1(&State2_QR::scorri, this);
+	//thread t1(&State2_QR::scorri, this);
 	//t1.join(); NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+	system("./scorri_camera");
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE)
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 
-
-		/*this->getWorldKB()->incrementCameraAngle();
+/*
+		this->getWorldKB()->incrementCameraAngle();
 		stringstream comando;
 		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
 		string support = comando.str();
@@ -120,7 +121,7 @@ bool State2_QR::searching()
 		return true;
 	return false; //handle
 }
-
+/*
 void State2_QR::scorri(void) {
 
 	this->getWorldKB()->setCameraAngle(CAMERA_INIT_ANGLE);
@@ -138,7 +139,7 @@ void State2_QR::scorri(void) {
 		sleep(SLEEPSTEPTIME);
 	}
 }
-
+*/
 /** Processes QR code. ---------------------------------------------------------------------------*/
 bool State2_QR::preProcessing() {
 	int min_payload=2;
