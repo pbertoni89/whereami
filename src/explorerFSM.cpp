@@ -167,10 +167,10 @@ bool State2_QR::isCentered() {
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
 	//printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
 	if (abs( x_center - frameCols/2 ) < centering_tolerance ){
-		//printf("\nQR rilevato e centrato\n");
+		printf("\nQR rilevato e centrato\n");
 		return true;
 	}else{
-		//printf("\nQR rilevato ma non centrato\n");
+		printf("\nQR rilevato ma non centrato\n");
 		return false;
 	}
 }
