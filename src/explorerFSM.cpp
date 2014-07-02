@@ -45,7 +45,8 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
 	qrStuff.qr_info = *temp;
 
-	const char* filename = "/home/gio/Scrivania/progettoQR/whereami/out_camera_data.yml"; /**TODO OCCHIO IN RELEASE */
+	//const char* filename = "/home/gio/Scrivania/progettoQR/whereami/out_camera_data.yml"; /**TODO OCCHIO IN RELEASE */
+	const char* filename = "out_camera_data.yml"; /**TODO OCCHIO IN RELEASE */
 	CvFileStorage* fs = cvOpenFileStorage(filename, 0, CV_STORAGE_READ);
 	if (fs==NULL) {
 		printf("Error during calibration file loading.\n");
