@@ -37,6 +37,8 @@ int main(int argc, char **argv){
 
 	_camera_id =0;
 
+	// parte primo thread per scorrere la camera -90:90
+	// parte secondo thread per esplorare
 	ExplorerFSM explorerFSM = ExplorerFSM(_camera_id);
 	explorerFSM.runFSM();
 

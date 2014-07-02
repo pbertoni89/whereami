@@ -27,7 +27,7 @@ LIB_OBJ = \
 LIB_SOBJ = $(subst .o,.lo,$(LIB_OBJ))
 OPT= #aggiunto da pat per le unordered map -std=gnu++11 -std=c++0x
 #-O3
-VERS= #-std=gnu++11
+VERS= -std=c++0x -pthread
 
 all: libquirc.so whereami calibration client
 

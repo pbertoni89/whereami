@@ -2,8 +2,9 @@
 #define EXPLORERFSM_H
 #include <iostream>
 using namespace std;
-#include <unistd.h>
+
 #include "worldKB.h"
+
 #include <time.h>
 #include <stdio.h>
 #include <string>
@@ -12,6 +13,8 @@ using namespace std;
 #include <unistd.h>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
+#include <thread>
+
 using namespace cv;
 
 #define THRESH 13 	 // mysterious magic number.
@@ -19,6 +22,8 @@ using namespace cv;
 #define UBOUND 225	 // maximum angle of vertical rotation allowed. set to 359 to disable.
 #define CENTER_TOL 50// maximum abs diff between QR center and vertical center of the frame.
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
+#define SLEEPINITTIME 0.5
+#define SLEEPSTEPTIME 0.2
 
 typedef struct QRStuff {
 	/** Temporary QRInfos structure describing the CURRENT QR to be processed and sent to worldKB. */
@@ -84,6 +89,8 @@ private:
 	bool preProcessing();
 	/** Second of two top-view methods of State2. Return true iff QR is correctly pushed into worldKB */
 	bool processing();
+	/** DOC*/
+	void scorri(void);
 
 public:
 	State2_QR(WorldKB* _worldKB);
