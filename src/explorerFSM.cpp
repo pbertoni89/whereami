@@ -81,10 +81,9 @@ State* State2_QR::executeState()
     	printf("%d\n", this->getWorldKB()->getCameraAngle());
 		stringstream comando;
 		comando << "morgulservo -- " << this->camera_angle;
-		//cout << comando.str();
 		string support = comando.str();
-		const char* comandoDaEseguire = support.c_str();
-		system(comandoDaEseguire);
+		cout << "sto chiamando : " << support << endl;
+		system(support.c_str());
 		sleep(0.5);
 	}
 
