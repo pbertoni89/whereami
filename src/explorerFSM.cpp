@@ -37,7 +37,6 @@ State* State1_Init::executeState(void)
 State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
 	camera_id = 0;
-	int camera_angle = this->getWorldKB()->getCameraAngle();
 
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
 	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
@@ -72,10 +71,10 @@ State2_QR::~State2_QR() { ; }
 
 State* State2_QR::executeState()
 {
-	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE )
+	while ( this->searching() == false)// && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 
-		this->getWorldKB()->incrementCameraAngle();
+		//this->getWorldKB()->incrementCameraAngle();
     	//printf("%d\n", this->getWorldKB()->getCameraAngle());
 		stringstream comando;
 		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
