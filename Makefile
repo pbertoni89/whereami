@@ -63,3 +63,7 @@ clean:
 	rm -f whereami
 	rm -f calibration
 	rm -f client
+
+cleanwhereami:
+	rm -f src/worldKB.o src/explorerFSM.o src/whereami.o
+	rm -f whereami

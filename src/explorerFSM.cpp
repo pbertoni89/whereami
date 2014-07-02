@@ -78,9 +78,9 @@ State* State2_QR::executeState()
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 
 		this->getWorldKB()->incrementCameraAngle();
-    	printf("%d\n", this->getWorldKB()->getCameraAngle());
+    	//printf("%d\n", this->getWorldKB()->getCameraAngle());
 		stringstream comando;
-		comando << "morgulservo -- " << this->camera_angle;
+		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
 		string support = comando.str();
 		cout << "sto chiamando : " << support << endl;
 		system(support.c_str());
