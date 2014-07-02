@@ -77,25 +77,18 @@ bool WorldKB::isQRInStaticKB(string label) {
 void WorldKB::parseStaticKB(string filename) {
 
 	ifstream in(filename.c_str());
-	int i=0;
 	vector<string> lines;
 
 	while(in){
 		string line;
 		getline(in,line);
-		if(line.size()>0){
+		if(line.size()>0)
 			lines.push_back(line);
-					cout<<lines[i]<<" with size "<<lines[i].size()<<"\n";
-			i++;
-		}
 	}
 
-	string str;
-	string str1;
-	int pos2;
-	int pos1;
+	string str, str1, s;
+	int pos1, pos2;
 
-	string s;
 	string delimiter = ",";
 
 	string parsed[3] ;
@@ -104,9 +97,8 @@ void WorldKB::parseStaticKB(string filename) {
 	size_t pos = 0;
 	string token;
 
-	cout<<"\n";
 	int count;
-	for(i=0; i< lines.size(); i++) {
+	for(int i=0; i< lines.size(); i++) {
 		count=0;
 
 		str=lines[i];
@@ -114,21 +106,14 @@ void WorldKB::parseStaticKB(string filename) {
 		str1 = str.substr (pos1);
 		pos2 = str.find(")");
 		s = str1.substr (0,pos2-pos1);
-		cout<< "Stringa riconosciuta :";
-		cout << s<<"\n";
 
-		cout<< "Parsing della stringa :\n";
 		while ((pos = s.find(delimiter)) != std::string::npos) {
 			token = s.substr(0, pos);
-			cout << "Token is: ";
 			parsed[count]=token;
-			std::cout << token << "con count = "<< count<<"\n";
 			s.erase(0, pos + delimiter.length());
 			count++;
 		}
 		parsed[count]=s;
-		cout << "in the end: ";
-		cout << s << std::endl;
 
 		temp.qr_label = parsed[0];
 			cout<<"temp payload e' :"<<temp.qr_label<<"\n";
