@@ -203,7 +203,7 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 
 bool State2_QR::isCentered() {
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
-	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, centering_tolerance);
+	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, CENTER_TOL);
 	if (abs( x_center - frameCols/2 ) < CENTER_TOL ){
 		printf("\nQR rilevato e centrato\n");
 		return true;
