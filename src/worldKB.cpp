@@ -21,7 +21,7 @@ int RecognizedLandmark::getPhiAngle() {
 WorldKB::WorldKB() {
 	this->camera_angle = CAMERA_INIT_ANGLE;
 	this->parseStaticKB("staticKB.txt");
-	this->printStaticKB();
+	//this->printStaticKB(); printf("build world");
 }
 
 WorldKB::~WorldKB() { ; }
@@ -98,10 +98,12 @@ void WorldKB::parseStaticKB(string filename) {
 	string token;
 
 	int count;
-	for(int i=0; i< lines.size(); i++) {
+	vector<string>::iterator it = lines.begin();
+
+	while(it != lines.end()) {
 		count=0;
 
-		str=lines[i];
+		str = (*it);
 		pos1 = str.find("(")+1;
 		str1 = str.substr (pos1);
 		pos2 = str.find(")");
@@ -119,8 +121,10 @@ void WorldKB::parseStaticKB(string filename) {
 		temp.qr_points.x = std::atoi(parsed[1].c_str());
 		temp.qr_points.y = atoi(parsed[2].c_str());
 		this->staticKB.push_back(temp);
-		}
+		it++;
 	}
+
+}
 
 void WorldKB::printStaticKB() {
 
@@ -131,5 +135,6 @@ void WorldKB::printStaticKB() {
 		cout<<"payload: "<<(*it).qr_label<<"\n";
 		cout<<"x: "<<(*it).qr_points.x<<"\n";
 		cout<<"y: "<<(*it).qr_points.x<<"\n";
+		it++;
 	}
 }
