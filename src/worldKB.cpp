@@ -132,9 +132,9 @@ void WorldKB::parseStaticKB(string filename) {
 
 		temp.qr_label = parsed[0];
 			cout<<"temp payload e' :"<<temp.qr_label<<"\n";
-		temp.qr_points.x = std::stoi(parsed[1]);
+		temp.qr_points.x = std::atoi(parsed[1].c_str());
 			cout<<"temp x e' :"<<temp.qr_points.x<<"\n";
-		temp.qr_points.y = stoi(parsed[2]);
+		temp.qr_points.y = atoi(parsed[2].c_str());
 			cout<<"temp y e' :"<<temp.qr_points.y <<"\n";
 		this->staticKB.push_back(temp);
 		}
