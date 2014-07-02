@@ -234,7 +234,7 @@ bool State2_QR::preProcessing() {
 					this->processing();
 					return false;
 				}else{
-						cout << "Non e' nella statica o e' già presente nella dinamica, in particolare: ";
+						cout << label << "  Non e' nella statica o e' già presente nella dinamica, in particolare: ";
 						if(!this->getWorldKB()->isQRInStaticKB(label) )
 							cout << "Non è nella statica quindi non può esistere";
 						if(this->getWorldKB()->isQRInDynamicKB(label))
