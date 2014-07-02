@@ -21,6 +21,10 @@ State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB) {
 	WorldKB* temp = new WorldKB; //controllare che funzioni correttamente; a esempio che sovrascriva le vecchie strutture
 	printf("allocated worldkb pointer at %p\n", temp);
 	this->setWorldKB(temp);
+
+	cout << "Metto la telecamera a -90\n";
+	system("morgulservo -- -90");
+	this->getWorldKB()->setCameraAngle(-90);
 }
 State1_Init::~State1_Init() { ; }
 
@@ -71,8 +75,16 @@ State* State2_QR::executeState()
 {
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE )
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
+
 		this->getWorldKB()->incrementCameraAngle();
-		printf("%d\n", this->getWorldKB()->getCameraAngle());
+    	printf("%d\n", this->getWorldKB()->getCameraAngle());
+		stringstream comando;
+		comando << "morgulservo -- " << this->camera_angle;
+		//cout << comando.str();
+		string support = comando.str();
+		const char* comandoDaEseguire = support.c_str();
+		system(comandoDaEseguire);
+		sleep(0.5);
 	}
 
 	 // cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
@@ -311,3 +323,20 @@ void* ExplorerFSM::runFSM()
 	}
 	return NULL;
 }
+
+
+
+
+
+
+/*
+
+		if(camera_angle==85){
+			camera_angle=-85;
+		}
+		camera_angle =camera_angle+1;
+
+
+
+
+ */

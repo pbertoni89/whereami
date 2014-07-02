@@ -4,6 +4,12 @@
 using namespace std;
 #include <unistd.h>
 #include "worldKB.h"
+#include <time.h>
+#include <stdio.h>
+#include <string>
+#include <stdlib.h>
+#include <sstream>
+#include <unistd.h>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 using namespace cv;
