@@ -17,7 +17,7 @@ using namespace cv;
 #define THRESH 13 	 // mysterious magic number.
 #define LBOUND 135	 // minimum angle of vertical rotation allowed. set to 0 to disable.
 #define UBOUND 225	 // maximum angle of vertical rotation allowed. set to 359 to disable.
-
+#define CENTER_TOL 50// maximum abs diff between QR center and vertical center of the frame.
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
 
 typedef struct QRStuff {
