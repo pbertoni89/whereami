@@ -124,11 +124,12 @@ void WorldKB::parseStaticKB(string filename) {
 
 void WorldKB::printStaticKB() {
 
-	cout << "Output is\n";
-	for(int z=0; z<this->staticKB.size(); z++){
-		cout<<z<<"):\n";
-		cout<<"payload: "<<this->staticKB[z].qr_label<<"\n";
-		cout<<"x: "<<this->staticKB[z].qr_points.x<<"\n";
-		cout<<"y: "<<this->staticKB[z].qr_points.x<<"\n";
+	cout << "STATIC KB\n";
+	vector<Landmark>::iterator it = this->staticKB.begin();
+
+	while(it != this->staticKB.end()) {
+		cout<<"payload: "<<(*it).qr_label<<"\n";
+		cout<<"x: "<<(*it).qr_points.x<<"\n";
+		cout<<"y: "<<(*it).qr_points.x<<"\n";
 	}
 }
