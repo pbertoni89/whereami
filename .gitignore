@@ -4,6 +4,7 @@
 inspect
 client
 calibration
+whereami
 libquirc.a
 libquirc.so
 .*.swp
