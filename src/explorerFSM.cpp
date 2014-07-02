@@ -74,14 +74,15 @@ State* State2_QR::executeState()
 	while ( this->searching() == false)// && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 
-		//this->getWorldKB()->incrementCameraAngle();
-    	//printf("%d\n", this->getWorldKB()->getCameraAngle());
+		/*
+		 * this->getWorldKB()->incrementCameraAngle();
+
 		stringstream comando;
 		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
 		string support = comando.str();
 		cout << "sto chiamando : " << support << endl;
 		system(support.c_str());
-		//sleep(1);
+		//sleep(1); */
 	}
 
 	 // cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
