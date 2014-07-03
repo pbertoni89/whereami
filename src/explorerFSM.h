@@ -89,8 +89,25 @@ private:
 	bool preProcessing();
 	/** Second of two top-view methods of State2. Return true iff QR is correctly pushed into worldKB */
 	bool processing();
+	void stampaCiao();
 	/** DOC*/
-	void scorri(void);
+
+	
+	void someMethod() {
+		this->getWorldKB()->incrementCameraAngle();
+		stringstream comando;
+		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
+		string support = comando.str();
+		cout << "sto chiamando : " << support << endl;
+		system(support.c_str());
+		sleep(2);
+	}
+
+	static void* scorri(void* arg) {
+	while(1)
+		((State2_QR*) arg)->someMethod();
+	return 0;
+	}
 
 public:
 	State2_QR(WorldKB* _worldKB);
