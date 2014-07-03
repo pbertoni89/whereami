@@ -229,7 +229,7 @@ bool State2_QR::isCentered(char* label) {
 		printf("\nQR rilevato e centrato\n");
 		return true;
 	}else{
-		cout "\nQR: " << label  " rilevato ma non centrato\n";
+		cout << "\nQR: " << label << " rilevato ma non centrato\n";
 		printf("\nQR rilevato ma non centrato\n");
 		return false;
 	}
