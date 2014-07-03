@@ -160,7 +160,7 @@ bool State2_QR::preProcessing() {
 	   len_payload=copyPayload();
 	    char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
-		if(len_payload>min_payload &&  isCentered()){
+		if(len_payload>min_payload &&  isCentered(label)){
 			if(this->getWorldKB()->isQRInStaticKB(label) && !this->getWorldKB()->isQRInDynamicKB(label)){
 					cout << "Nuovo QR!\n";
 					cout <<"Payload; " << label;
@@ -222,13 +222,14 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 	this->qrStuff.qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
 }
 
-bool State2_QR::isCentered() {
+bool State2_QR::isCentered(char* label) {
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
 	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, CENTER_TOL);
 	if (abs( x_center - frameCols/2 ) < CENTER_TOL ){
 		printf("\nQR rilevato e centrato\n");
 		return true;
 	}else{
+		cout "\nQR: " << label  " rilevato ma non centrato\n";
 		printf("\nQR rilevato ma non centrato\n");
 		return false;
 	}
