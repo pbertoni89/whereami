@@ -1,6 +1,7 @@
 #include "explorerFSM.h"
 State::State(WorldKB* _worldKB) //: worldKB(_worldKB)
 {
+	cout << "INIZIALIZZO STATO\n";
 	this->worldKB = _worldKB;
 }
 
@@ -16,10 +17,6 @@ void State::setWorldKB(WorldKB* kb)
 }
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB) {
-	WorldKB* temp = new WorldKB; //controllare che funzioni correttamente; a esempio che sovrascriva le vecchie strutture
-	printf("allocated worldkb pointer at %p\n", temp);
-	this->setWorldKB(temp);
-
 	cout << "Metto la telecamera a -90\n";
 	system("morgulservo -- -90");
 	this->getWorldKB()->setCameraAngle(-90);
@@ -36,6 +33,8 @@ State* State1_Init::executeState(void)
 
 State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
+	cout << "SONO LO STATO 2\n";
+
 	camera_id = 0;
 
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
@@ -270,7 +269,8 @@ void State2_QR::resetQR() {
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
 State3_StatusChecking::State3_StatusChecking(WorldKB* _worldKB) : State(_worldKB){
-//cout << "   State4_StatusChecking state\n";
+	cout << "SONO LO STATO 3\n";
+
 }
 
 State3_StatusChecking::~State3_StatusChecking() { ; }
@@ -343,20 +343,3 @@ void* ExplorerFSM::runFSM()
 	}
 	return NULL;
 }
-
-
-
-
-
-
-/*
-
-		if(camera_angle==85){
-			camera_angle=-85;
-		}
-		camera_angle =camera_angle+1;
-
-
-
-
- */
