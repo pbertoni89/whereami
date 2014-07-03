@@ -1,4 +1,0 @@
-LOG
-
-moved quirc allocator n deallocator INSIDE main scanning while loop. this should avoid some memory leaks.
-redesigned internal structure of extrapolate_qr_informations: removed unuseful stuff, fixed printing (now divided in release n debug)

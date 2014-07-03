@@ -58,12 +58,12 @@ libquirc.so: $(LIB_SOBJ)
 clean:
 	rm -f */*.o
 	rm -f *.o
-	rm -f */*.lo
-	rm -f libquirc.a
-	rm -f libquirc.so
+	#rm -f */*.lo
+	#rm -f libquirc.a
+	#rm -f libquirc.so
 	rm -f whereami
-	rm -f calibration
-	rm -f client
+	#rm -f calibration
+	#rm -f client
 
 cleanwhereami:
 	rm -f src/worldKB.o src/explorerFSM.o src/whereami.o
