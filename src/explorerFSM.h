@@ -22,8 +22,7 @@ using namespace cv;
 #define UBOUND 225	 // maximum angle of vertical rotation allowed. set to 359 to disable.
 #define CENTER_TOL 50// maximum abs diff between QR center and vertical center of the frame.
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
-#define SLEEPINITTIME 0.5
-#define SLEEPSTEPTIME 0.2
+#define SLEEPSTEPTIME 0.5
 
 typedef struct QRStuff {
 	/** Temporary QRInfos structure describing the CURRENT QR to be processed and sent to worldKB. */
@@ -99,7 +98,7 @@ private:
 		string support = comando.str();
 		cout << "sto chiamando : " << support << endl;
 		system(support.c_str());
-		sleep(2);
+		sleep(SLEEPSTEPTIME);
 	}
 
 	static void* scorri(void* arg) {
