@@ -34,6 +34,8 @@ void WorldKB::pushQR(QRInfos* qr_info) {
 	RecognizedLandmark temp = RecognizedLandmark(*qr_info);
 	//printf("qr info just copied to be passed. its payload is %s\n", temp.getQRInfos().qr_message);
 	this->dynamicKB.push_back(temp);
+	cout << "Ho inserito il QR con payload: " << qr_info->qr_message <<"\n";
+	cout << "Dimensione della dynamic table: " << this->dynamicKB.size();
 	//printf("qr info just passed. its payload is %s\n", this->landmarks.back().getQRInfos().qr_message);
 }
 

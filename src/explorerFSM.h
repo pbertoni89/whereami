@@ -22,8 +22,7 @@ using namespace cv;
 #define UBOUND 225	 // maximum angle of vertical rotation allowed. set to 359 to disable.
 #define CENTER_TOL 50// maximum abs diff between QR center and vertical center of the frame.
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
-#define SLEEPINITTIME 0.5
-#define SLEEPSTEPTIME 0.2
+#define SLEEPSTEPTIME 1
 
 typedef struct QRStuff {
 	/** Temporary QRInfos structure describing the CURRENT QR to be processed and sent to worldKB. */
@@ -79,7 +78,7 @@ private:
 	int scaleQR(double side);
 	void copyCorners();
 	void calcPerspective_Distance(double side_a, double side_b);
-	bool isCentered();
+	bool isCentered(char* label);
 	int copyPayload();
 	void printQRInfo(); //will be deleted
 	void resetQR();
@@ -90,7 +89,23 @@ private:
 	/** Second of two top-view methods of State2. Return true iff QR is correctly pushed into worldKB */
 	bool processing();
 	/** DOC*/
-	void scorri(void);
+
+	
+	void incrementaCamera() {
+		this->getWorldKB()->incrementCameraAngle();
+		stringstream comando;
+		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
+		string support = comando.str();
+		cout << "sto chiamando : " << support << endl;
+		system(support.c_str());
+		sleep(SLEEPSTEPTIME);
+	}
+
+	static void* scorri(void* arg) {
+	while(1)
+		((State2_QR*) arg)->incrementaCamera();
+	return 0;
+	}
 
 public:
 	State2_QR(WorldKB* _worldKB);

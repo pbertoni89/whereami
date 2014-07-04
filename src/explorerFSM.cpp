@@ -1,6 +1,7 @@
 #include "explorerFSM.h"
 State::State(WorldKB* _worldKB) //: worldKB(_worldKB)
 {
+	cout << "INIZIALIZZO STATO\n";
 	this->worldKB = _worldKB;
 }
 
@@ -16,10 +17,6 @@ void State::setWorldKB(WorldKB* kb)
 }
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB) {
-	WorldKB* temp = new WorldKB; //controllare che funzioni correttamente; a esempio che sovrascriva le vecchie strutture
-	printf("allocated worldkb pointer at %p\n", temp);
-	this->setWorldKB(temp);
-
 	cout << "Metto la telecamera a -90\n";
 	system("morgulservo -- -90");
 	this->getWorldKB()->setCameraAngle(-90);
@@ -36,6 +33,8 @@ State* State1_Init::executeState(void)
 
 State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
+	cout << "SONO LO STATO 2\n";
+
 	camera_id = 0;
 
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
@@ -69,16 +68,17 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 
 State2_QR::~State2_QR() { ; }
 
+
+
 State* State2_QR::executeState()
 {
-	//thread t1(&State2_QR::scorri, this);
-	//t1.join(); NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+	pthread_t t;
+	pthread_create(&t, NULL, &State2_QR::scorri, this);
 
-	system("./scorri_camera");
 	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE)
 	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
 
-/*
+	/*
 		this->getWorldKB()->incrementCameraAngle();
 		stringstream comando;
 		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
@@ -160,7 +160,7 @@ bool State2_QR::preProcessing() {
 	   len_payload=copyPayload();
 	    char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
-		if(len_payload>min_payload &&  isCentered()){
+		if(len_payload>min_payload &&  isCentered(label)){
 			if(this->getWorldKB()->isQRInStaticKB(label) && !this->getWorldKB()->isQRInDynamicKB(label)){
 					cout << "Nuovo QR!\n";
 					cout <<"Payload; " << label;
@@ -222,13 +222,14 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 	this->qrStuff.qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
 }
 
-bool State2_QR::isCentered() {
+bool State2_QR::isCentered(char* label) {
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
 	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, CENTER_TOL);
 	if (abs( x_center - frameCols/2 ) < CENTER_TOL ){
 		printf("\nQR rilevato e centrato\n");
 		return true;
 	}else{
+		cout << "\nQR: " << label << " rilevato ma non centrato\n";
 		printf("\nQR rilevato ma non centrato\n");
 		return false;
 	}
@@ -269,7 +270,8 @@ void State2_QR::resetQR() {
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
 State3_StatusChecking::State3_StatusChecking(WorldKB* _worldKB) : State(_worldKB){
-//cout << "   State4_StatusChecking state\n";
+	cout << "SONO LO STATO 3\n";
+
 }
 
 State3_StatusChecking::~State3_StatusChecking() { ; }
@@ -342,20 +344,3 @@ void* ExplorerFSM::runFSM()
 	}
 	return NULL;
 }
-
-
-
-
-
-
-/*
-
-		if(camera_angle==85){
-			camera_angle=-85;
-		}
-		camera_angle =camera_angle+1;
-
-
-
-
- */
