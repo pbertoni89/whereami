@@ -6,6 +6,7 @@
 #include "quirc.h"
 
 #define PIDEG 180
+#define HALFPIDEG PIDEG/2
 
 using namespace cv;
 
@@ -15,5 +16,7 @@ double pitagora(double a, double b);
 double average(double a, double b);
 double getAngleV(int dy, int dx);
 double getAngleLR(int dx, int dim);
+double degToRad(double degs);
+double radToDeg(double rads);
 
 #endif

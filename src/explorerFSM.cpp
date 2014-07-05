@@ -1,5 +1,6 @@
 #include "explorerFSM.h"
-State::State(WorldKB* _worldKB) //: worldKB(_worldKB)
+
+State::State(WorldKB* _worldKB)
 {
 	cout << "INIZIALIZZO STATO\n";
 	this->worldKB = _worldKB;
@@ -11,21 +12,33 @@ WorldKB* State::getWorldKB()
 {
 	return this->worldKB;
 }
+
 void State::setWorldKB(WorldKB* kb) 
 {
 	this->worldKB = kb;
 }
-// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
-State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB) {
-	cout << "Metto la telecamera a -90\n";
-	system("morgulservo -- -90");
-	this->getWorldKB()->setCameraAngle(-90);
+
+void State::morgulservo_wrapper(float sleeptime)
+{
+	stringstream comando;
+	comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
+	cout << "sto chiamando : " << comando.str() << endl;
+	system(comando.str().c_str()); //magari si annullano le due sottochiamate
+	sleep(sleeptime);
 }
+
+// --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
+State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB)
+{
+	this->getWorldKB()->setCameraAngle(this->getWorldKB()->getpStartAngle());
+	this->morgulservo_wrapper(this->getWorldKB()->getpStartSleep());
+}
+
 State1_Init::~State1_Init() { ; }
 
 State* State1_Init::executeState(void)
 {	
-	delete this;
+	//delete this;
 	return new State2_QR(this->getWorldKB());
 }
 
@@ -35,74 +48,60 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
 	cout << "SONO LO STATO 2\n";
 
-	camera_id = 0;
-
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
 	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
 	qrStuff.qr_info = *temp;
 
-	//const char* filename = "/home/gio/Scrivania/progettoQR/whereami/out_camera_data.yml"; /**TODO OCCHIO IN RELEASE */
-	const char* filename = "out_camera_data.yml"; /**TODO OCCHIO IN RELEASE */
-	CvFileStorage* fs = cvOpenFileStorage(filename, 0, CV_STORAGE_READ);
-	if (fs==NULL) {
-		printf("Error during calibration file loading.\n");
-		exit(1);
-	}
+	CvFileStorage* fs = cvOpenFileStorage(CALIB_FILE, 0, CV_STORAGE_READ);
+	if (fs==NULL)
+		{ perror("Error during calibration file loading.\n"); exit(1); }
 	this->intrinsic_matrix = (CvMat*)cvReadByName(fs, 0, "camera_matrix");
 	this->distortion_coeffs = (CvMat*)cvReadByName(fs, 0, "distortion_coefficients");
 	this->scale_factor = cvReadIntByName(fs, 0, "scale_factor");
 	this->qr_size_mm = cvReadIntByName(fs, 0, "qr_size_mm");
 
 	resetQR();
+	capture.open(this->getWorldKB()->getpCameraID());
 
-	capture.open(camera_id);
-
-	if (!capture.isOpened()) {
-		printf("Error during capture opening.\n");
-		exit(1);
-	  }
+	if (!capture.isOpened())
+		{ perror("Error during capture opening.\n"); exit(1); }
 	Mat framet;
     capture >> framet;
     this->frameCols = framet.cols;
 }
 
-State2_QR::~State2_QR() { ; }
-
-
+State2_QR::~State2_QR()
+{
+	free(qrStuff.q);
+	free(&(qrStuff.qr_info));
+}
 
 State* State2_QR::executeState()
 {
 	pthread_t t;
 	pthread_create(&t, NULL, &State2_QR::scorri, this);
 
-	while ( this->searching() == false && this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE)
-	{ // QUA VA LA CHIAMATA DI SISTEMA PER GIRARE LA TELECAMERA DI STEP GRADI; 
-
-	/*
-		this->getWorldKB()->incrementCameraAngle();
-		stringstream comando;
-		comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
-		string support = comando.str();
-		cout << "sto chiamando : " << support << endl;
-		system(support.c_str());
-		sleep(0.5);*/
+	while (this->searching() == false && this->getWorldKB()->isInRange() == true)
+	{
+		cout << "dentro while, angle = " <<this->getWorldKB()->getCameraAngle() << endl;
+		/* c'è una lieve ma presente SFASATURA tra chiamate a morgulservo e iterazioni di questo while. esaminare output per rendersene conto
+		 * più specificamente, il thread va molto più veloce e questo while non riesce a stargli dietro, di fatto il cout precedente non viene
+		 * stampato ad ogni step, ma ogni 6-8 steps.
+		 * QUESTO È MOLTO GRAVE, PERCHÈ SE PER CASO DOVESSIMO AVERE QUALCHE ISTRUZIONE IN QUESTO CICLO, QUESTA NON AVVERREBBE A OGNI STEP !
+		 */
 	}
-
-	 // cout << "\t Distanza QR dalla camera: " << this->qrStuff.qr_info.distance << endl;
-
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
-	delete this;
-	return new State3_StatusChecking(this->getWorldKB());
+
+	//delete this;
+	return new State3_Checking(this->getWorldKB());
 }
 
 bool State2_QR::searching()
 {
 	this->qrStuff.q = quirc_new();
-	if(!this->qrStuff.q) {
-		perror("Can't create quirc object");
-		exit(1);
-}
+	if(!this->qrStuff.q)
+		{ perror("Can't create quirc object"); exit(1); }
 
 	Mat frame0, frame, frame_undistort, frame_BW;
 	if( !this->capture.isOpened() )
@@ -117,80 +116,66 @@ bool State2_QR::searching()
 	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
 	cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
 	cv_to_quirc(this->qrStuff.q, frame_BW);
-	if (preProcessing() == true)
+	if (preProcessing())
 		return true;
 	return false; //handle
 }
-/*
-void State2_QR::scorri(void) {
 
-	this->getWorldKB()->setCameraAngle(CAMERA_INIT_ANGLE);
-	stringstream comando;
-	comando << "morgulservo -- " << CAMERA_INIT_ANGLE;
-	system(comando.str().c_str());
-
-	sleep(SLEEPINITTIME);
-	while(this->getWorldKB()->getCameraAngle() < CAMERA_END_ANGLE) {
-
-		this->getWorldKB()->incrementCameraAngle();
-		stringstream comando2;
-		comando2 << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
-		system(comando2.str().c_str());
-		sleep(SLEEPSTEPTIME);
-	}
-}
-*/
 /** Processes QR code. ---------------------------------------------------------------------------*/
-bool State2_QR::preProcessing() {
+bool State2_QR::preProcessing()
+{
 	int min_payload=2;
 	quirc_end(this->qrStuff.q);
-  int count = quirc_count(this->qrStuff.q);
-  if(count == 0){ // no QR codes found.
-    return false;
-  }
-  if(count > 1) {
-	cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl;
-	}
-  quirc_decode_error_t err;
-
-  quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code)); // only recognize the first QR code found in the image
-  err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
-   if(err==0) {
-	   int len_payload=0;
-	   len_payload=copyPayload();
-	    char* label = this->qrStuff.qr_info.qr_message;
+	int count = quirc_count(this->qrStuff.q);
+	if(!count)
+		return false; // no QR codes found.
+	if(count > 1)
+		cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl;
+	quirc_decode_error_t err;
+	// only recognize the first QR code found in the image
+	quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code));
+	err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
+	if(!err) {
+		int len_payload = copyPayload();
+		char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
-		if(len_payload>min_payload &&  isCentered(label)){
-			if(this->getWorldKB()->isQRInStaticKB(label) && !this->getWorldKB()->isQRInDynamicKB(label)){
-					cout << "Nuovo QR!\n";
-					cout <<"Payload; " << label;
-					this->processing();
-					return false;
-				}else{
-						cout << label << "  Non e' nella statica o e' già presente nella dinamica, in particolare: ";
-						if(!this->getWorldKB()->isQRInStaticKB(label) )
-							cout << "Non è nella statica quindi non può esistere";
-						if(this->getWorldKB()->isQRInDynamicKB(label))
-							cout << "è nella dinamica quindi è un QR già conosiuto";
-						return false; //ignora il qr
-			  }
+		if(len_payload>min_payload &&  isCentered()){
+			bool isKnown;
+			bool isRecognized;
+			isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
+			if(isKnown && !isRecognized){
+				cout << "Nuovo QR: \""<< label <<"\"" << endl;
+				this->processing();
+				return false;
+			}else{
+				cout << label << " Non e' nella statica o e' già presente nella dinamica, in particolare: ";
+				if(!isKnown)
+					cout << "Non è nella statica quindi non può esistere";
+				if(isRecognized)
+					cout << "è nella dinamica quindi è un QR già conosiuto";
+				return false;
+			}
 		}
-			  //cout << "\t" << label << " is NOT known in Static KB: false" << endl;
-		}
-  return false;
-}
-
-bool State2_QR::processing() {
-	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
-	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
-	calcPerspective_Distance(side2, side4);
-	cout<<"\nPush del QR con messaggio: "<<this->qrStuff.qr_info.qr_message<<" distanza: "<<this->qrStuff.qr_info.distance<<"\n";
-	this->getWorldKB()->pushQR(& this->qrStuff.qr_info);
-	cout << this->getWorldKB()->get_qr_found();
+	}
 	return false;
 }
 
-void State2_QR::copyCorners() {
+bool State2_QR::processing()
+{
+	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
+	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
+	calcPerspective_Distance(side2, side4);
+	cout << "Push QR: message: " << this->qrStuff.qr_info.qr_message
+			 << ", distance: " << this->qrStuff.qr_info.distance
+			 << ", delta angle: " << this->getWorldKB()->getCameraAngle() << endl;
+	this->getWorldKB()->pushQR(string(this->qrStuff.qr_info.qr_message),
+								this->qrStuff.qr_info.distance,
+								(double)this->getWorldKB()->getCameraAngle());
+	return false;
+}
+
+void State2_QR::copyCorners()
+{
 	this->qrStuff.qr_info.x0 = this->qrStuff.code.corners[0].x;
 	this->qrStuff.qr_info.y0 = this->qrStuff.code.corners[0].y;
 	this->qrStuff.qr_info.x1 = this->qrStuff.code.corners[1].x;
@@ -201,13 +186,15 @@ void State2_QR::copyCorners() {
 	this->qrStuff.qr_info.y3 = this->qrStuff.code.corners[3].y;
 }
 
-int State2_QR::scaleQR(double side) {
+int State2_QR::scaleQR(double side)
+{
 	static double fact = (double)this->scale_factor * (double)this->qr_size_mm;
 	return fact/side;
 }
 
 /** Calculate perspective rotation and distance of the QR. ---------------------------------------*/
-void State2_QR::calcPerspective_Distance(double side2, double side4) {
+void State2_QR::calcPerspective_Distance(double side2, double side4)
+{
 	int qr_pixel_size = average(side2, side4);
 	int s2_dist = this->scaleQR(side2);
 	int s4_dist = this->scaleQR(side4);
@@ -222,29 +209,22 @@ void State2_QR::calcPerspective_Distance(double side2, double side4) {
 	this->qrStuff.qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
 }
 
-bool State2_QR::isCentered(char* label) {
+bool State2_QR::isCentered()
+{
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
-	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, CENTER_TOL);
-	if (abs( x_center - frameCols/2 ) < CENTER_TOL ){
+	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, this->getWorldKB()->getpCenterTolerance());
+	if (abs( x_center - frameCols/2 ) < this->getWorldKB()->getpCenterTolerance() ){
 		printf("\nQR rilevato e centrato\n");
 		return true;
 	}else{
-		cout << "\nQR: " << label << " rilevato ma non centrato\n";
 		printf("\nQR rilevato ma non centrato\n");
 		return false;
 	}
 }
 
-void State2_QR::printQRInfo() {
-	printf("*********************************************\n");
-    printf("Perspective rotation\t\t%d\n", this->qrStuff.qr_info.perspective_rotation);
-    printf("Distance from camera\t\t%d\n", this->qrStuff.qr_info.distance);
-    printf("Payload\t\t%s\n ", this->qrStuff.qr_info.qr_message);
-    printf("*********************************************\n\n");
-}
-
 /** Copies payload from data to info structure. --------------------------------------------------*/
-int State2_QR::copyPayload() {
+int State2_QR::copyPayload()
+{
 	this->qrStuff.qr_info.message_length = MAXLENGTH;
 	int payload_len = this->qrStuff.data.payload_len;
     int payloadTruncated = 0;
@@ -258,7 +238,8 @@ int State2_QR::copyPayload() {
     return payload_len;
 }
 
-void State2_QR::resetQR() {
+void State2_QR::resetQR()
+{
 	this->qrStuff.qr_info.distance = 0;
 	this->qrStuff.qr_info.message_length = -1;
 	this->qrStuff.qr_info.payload_truncated = 0;
@@ -269,44 +250,127 @@ void State2_QR::resetQR() {
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
-State3_StatusChecking::State3_StatusChecking(WorldKB* _worldKB) : State(_worldKB){
+State3_Checking::State3_Checking(WorldKB* _worldKB) : State(_worldKB)
+{
 	cout << "SONO LO STATO 3\n";
-
 }
 
-State3_StatusChecking::~State3_StatusChecking() { ; }
+State3_Checking::~State3_Checking() { ; }
 
-State* State3_StatusChecking::executeState()
-{//cout << "Sono nello stato 3\n";
-  delete this;
+State* State3_Checking::executeState()
+{
+  //delete this;
   return new State4_Localizing(this->getWorldKB());
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
+void Triangle::triangulation()
+{
+	this->gamma_angle = lmB->getDeltaAngle() - lmA->getDeltaAngle();
+	double AR = this->lmA->getDistance();
+	double RB = this->lmB->getDistance();
+	double dxAB = lmB->getX() - lmA->getX();
+	double dyAB = lmB->getY() - lmA->getY();
+	double AB = pitagora(dyAB, dxAB);					// radius of AB
+	this->theta_angle = radToDeg(atan2(dyAB, dxAB));	// phase  of AB
+	this->alpha_angle = radToDeg(asin( sin(degToRad(gamma_angle)) * (RB/AB)));
+	this->phi_angle = theta_angle - alpha_angle + HALFPIDEG;
+	double dxAR = AR * sin(degToRad(phi_angle));
+	double dyAR = AR * cos(degToRad(phi_angle));
+	//cout << "temp: AB = " << AB << ", dxAB = " << dxAB << ", dyAB = " << dyAB << ", dxAR = " << dxAR << ", dyAR = " << dyAR << endl;
+	this->robot_coords.x = lmA->getX() + dxAR;
+	this->robot_coords.y = lmA->getY() - dyAR; // OCCHIO AL MENO
+}
+
+Triangle::Triangle(Landmark* _lA, Landmark* _lB)
+{
+	this->lmA = _lA;
+	this->lmB = _lB;
+	this->alpha_angle = this->beta_angle = this->gamma_angle = this->phi_angle = this->theta_angle = 0;
+	this->robot_coords.x = this->robot_coords.y = 0;
+}
+
+void Triangle::print()
+{
+	cout << "Printing Triangle" << endl;
+	this->lmA->print();
+	this->lmB->print();
+	cout << "angles: alpha = " << this->alpha_angle << ", beta = " << this->beta_angle << ", gamma = " << this->gamma_angle << ", phi = " << this->phi_angle << ", theta = " << this->theta_angle << endl;
+	cout << "WHERE AM I ? X = " << this->robot_coords.x << ", Y = " << this->robot_coords.y << endl;
+	cout << "~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ " << endl;
+}
+
+void Triangle::printShort()
+{
+	cout << "Landmark A: "; this->lmA->getLabel();
+	cout << "\tLandmark B: "; this->lmB->getLabel();
+	cout << "\tRobot: X = " << this->robot_coords.x << ", Y = " << this->robot_coords.y << endl;
+}
+
 State4_Localizing::State4_Localizing(WorldKB* _worldKB) : State(_worldKB)
-{//cout << "   State5_Localizing state\n";
+{//cout << "   State4_Localizing state\n";
 }
 
 State4_Localizing::~State4_Localizing() { ; }
 
+Triangle State4_Localizing::basicLocalization()
+{
+	Landmark* lA = this->getWorldKB()->getLandmark(0);
+	Landmark* lB = this->getWorldKB()->getLandmark(1);
+	Triangle tr = Triangle(lA, lB);
+	tr.triangulation();
+	tr.print();
+	return tr;
+}
+
+void State4_Localizing::testLocalization()
+{
+	this->getWorldKB()->triangleTest();
+	Landmark* lA = this->getWorldKB()->getLandmark(0);
+	Landmark* lB = this->getWorldKB()->getLandmark(1);
+	Triangle tr1 = Triangle(lA, lB);
+	tr1.triangulation();
+	tr1.print();
+	Landmark* lC = this->getWorldKB()->getLandmark(2);
+	Landmark* lD = this->getWorldKB()->getLandmark(3);
+	Triangle tr2 = Triangle(lC, lD);
+	tr2.triangulation();
+	tr2.print();
+}
+
+void State4_Localizing::printAllRobotCoords()
+{
+	cout << "WHERE AM I ? Printing all possible suggestions. " << endl;
+	vector<Triangle>::iterator it = this->triangles.begin();
+	while(it != this->triangles.end()) {
+		(*it).printShort();
+		it++;
+	}
+	cout << "~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ " << endl;
+}
+
 State* State4_Localizing::executeState()
 {
-  delete this;
-  return NULL;
+	cout << "   State5_Localizing: calling BASIC LOCALIZATION" << endl;
+
+	//Triangle tr = this->basicLocalization();
+	//this->triangles.push_back(tr);
+	this->testLocalization();
+
+	//delete this;
+	return NULL;
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
-State5_Error::State5_Error(WorldKB* _worldKB) : State(_worldKB)
-{//cout << "   State5_Localizing state\n";
-}
+State5_Error::State5_Error(WorldKB* _worldKB) : State(_worldKB) {;}
 
-State5_Error::~State5_Error() { ; }
+State5_Error::~State5_Error() {;}
 
 State* State5_Error::executeState()
 {
-  delete this;
+  //delete this;
   return NULL;
 }
 
@@ -315,15 +379,15 @@ State* State5_Error::executeState()
 // --------------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ----------------
 // --------------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ---------------- ----------------
 
-ExplorerFSM::ExplorerFSM(int _camera_id) 
+ExplorerFSM::ExplorerFSM()
 {
-	this->camera_id = _camera_id;
-	WorldKB* temp = new WorldKB;
-	this->worldKB = *temp;
+	// DO NOT CONSTRUCT ANYTHING HERE ! it's called by default, somehow
+	//this->worldKB = *(new WorldKB);
+	//this->worldKB = WorldKB;
 	this->currentState = new State1_Init(&(this->worldKB));
 }
 
-ExplorerFSM::~ExplorerFSM() { ; }
+ExplorerFSM::~ExplorerFSM() {;}
 
 void ExplorerFSM::setCurrentState(State *s)
 {
@@ -333,12 +397,12 @@ void ExplorerFSM::setCurrentState(State *s)
 void* ExplorerFSM::runFSM()
 {
 	State* temp;
-	while(1) {
+	while(true) {
 		temp = currentState->executeState();
-		if(temp)
+		if(temp!=NULL)
 			setCurrentState(temp);
 		else {
-			printf("HO FINITO\n");
+			printf("Whereami exiting successfully.\n");
 			break;
 		}
 	}

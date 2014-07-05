@@ -1,0 +1,11 @@
+#this is a very, very, very(!!!) rudimental config file for whereami, due to short time. Follow some simple but unfriendly rules:
+# 1. do NOT add, remove or swap any line.
+# 2. do NOT add whitespaces around `=` symbol.
+# 3. type checking is not performed.
+CAMERA=0
+STARTANGLE=-90
+STEPANGLE=1
+ENDANGLE=-80
+STEPSLEEP=0.5
+INITSLEEP=1
+CENTER_TOL=50

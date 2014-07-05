@@ -1,10 +1,4 @@
-#include <string.h>
-#include <stdio.h>
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
 #include "util.h"
-
-using namespace cv;
 
 void cv_to_quirc(struct quirc *q, Mat& img){
 	uint8_t *image;
@@ -29,11 +23,22 @@ double average(double a, double b) {
 }
 
 double getAngleV(int dy, int dx) {
-	static double scale = (double)PIDEG / (double) CV_PI;
-	return (atan2((double)dy, (double)dx)*scale);
+	return radToDeg(atan2((double)dy, (double)dx));
 }
+
 double getAngleLR(int dx, int dim) {
 	double angle = (double)dx / (double) dim;
-	static double scale = (double)PIDEG / (double) CV_PI;
-	return (asin(angle)*scale);
+	return radToDeg(asin(angle));
+}
+
+double degToRad(double degs)
+{
+	static double scale = (double)CV_PI/(double)PIDEG;
+	return degs*scale;
+}
+
+double radToDeg(double rads)
+{
+	static double scale = (double)PIDEG/(double)CV_PI;
+	return rads*scale;
 }
