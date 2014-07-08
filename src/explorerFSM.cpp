@@ -45,8 +45,6 @@ State* State1_Init::executeState(void)
 
 State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
-	cout << "SONO LO STATO 2\n";
-
 	this->mutex = PTHREAD_MUTEX_INITIALIZER;
 	this->turnSearching = false;
 
@@ -88,9 +86,11 @@ State* State2_QR::executeState()
 		if(turnSearching) {
 			cout << "is Searching turn." << endl;
 			while(pthread_mutex_lock(&mutex)   != 0);
-			for(int i=0; i<NTRY; i++)
+			for(int i=0; i<NTRY; i++) {
 				if(!stopWhile) //otherwise, we're fine !
+					cout << "trial number " << i << endl;
 					stopWhile = this->searching();															// CRITICAL REGION
+			}
 				//cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
 				turnSearching = false;																	// CRITICAL REGION
 			while(pthread_mutex_unlock(&mutex) != 0);
@@ -220,7 +220,7 @@ void State2_QR::calcPerspective_Distance(double side2, double side4)
 bool State2_QR::isCentered()
 {
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
-	cout << "x_center =" << x_center << ", frameCols = " << frameCols << this->getWorldKB()->getpCenterTolerance();
+	cout << "x_center =" << x_center << ", frameCols = " << frameCols;
 	if (abs( x_center - frameCols/2 ) < this->getWorldKB()->getpCenterTolerance() ){
 		cout << ", Centered." << endl;
 		return true;
@@ -260,7 +260,6 @@ void State2_QR::resetQR()
 
 State3_Checking::State3_Checking(WorldKB* _worldKB) : State(_worldKB)
 {
-	//cout << "SONO LO STATO 3\n";
 }
 
 State3_Checking::~State3_Checking() { ; }
