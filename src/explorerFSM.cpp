@@ -85,25 +85,22 @@ State* State2_QR::executeState()
 
 	bool stopWhile = false;
 	do {
-		//if(turnSearching) {
-		//	cout << "is Searching turn." << endl;
+		if(turnSearching) {
+			cout << "is Searching turn." << endl;
 			while(pthread_mutex_lock(&mutex)   != 0);
-				stopWhile = this->searching();															// CRITICAL REGION
+			for(int i=0; i<NTRY; i++)
+				if(!stopWhile) //otherwise, we're fine !
+					stopWhile = this->searching();															// CRITICAL REGION
 				//cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
-		//		turnSearching = false;																	// CRITICAL REGION
+				turnSearching = false;																	// CRITICAL REGION
 			while(pthread_mutex_unlock(&mutex) != 0);
-		//}
-		/* c'è una lieve ma presente SFASATURA tra chiamate a morgulservo e iterazioni di questo while. esaminare output per rendersene conto
-		 * più specificamente, il thread va molto più veloce e questo while non riesce a stargli dietro, di fatto il cout precedente non viene
-		 * stampato ad ogni step, ma ogni 6-8 steps.
-		 * QUESTO È MOLTO GRAVE, PERCHÈ SE PER CASO DOVESSIMO AVERE QUALCHE ISTRUZIONE IN QUESTO CICLO, QUESTA NON AVVERREBBE A OGNI STEP !
-		 */
+		}
 	} while (stopWhile == false && this->getWorldKB()->isInRange() == true);
 
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
 
-						//pthread_kill(moveCamera_thread, SIGTERM);
+	//pthread_kill(moveCamera_thread, SIGTERM);
 	//delete this;
 	return new State3_Checking(this->getWorldKB());
 }
@@ -176,7 +173,7 @@ bool State2_QR::processing()
 	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
 	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
 	calcPerspective_Distance(side2, side4);
-	cout << "Push QR: message: " << this->qrStuff.qr_info.qr_message
+	cout << "Processing: message: " << this->qrStuff.qr_info.qr_message
 			 << ", distance: " << this->qrStuff.qr_info.distance
 			 << ", delta angle: " << this->getWorldKB()->getCameraAngle() << endl;
 	this->getWorldKB()->pushQR(string(this->qrStuff.qr_info.qr_message),
