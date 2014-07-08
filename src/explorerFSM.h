@@ -95,11 +95,12 @@ private:
 		//pat ha aggiunto questo IF poichè altrimenti nulla avrebbe fermato il thread!
 		if (this->getWorldKB()->isInRange()) {
 			if(!turnSearching) {
-//				while(pthread_mutex_lock(&mutex)   != 0);
+				cout << "is moveCamera turn." << endl;
+				while(pthread_mutex_lock(&mutex)   != 0);
 					this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
 					morgulservo_wrapper(this->getWorldKB()->getpStepSleep());	// CRITICAL REGION
 					turnSearching = true;										// CRITICAL REGION
-//				while(pthread_mutex_unlock(&mutex)   != 0);
+				while(pthread_mutex_unlock(&mutex)   != 0);
 			}
 			return true;
 		}
