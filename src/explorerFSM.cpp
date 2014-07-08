@@ -155,11 +155,11 @@ bool State2_QR::preProcessing()
 			bool isRecognized;
 			isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
 			if(isCentered() && isKnown && !isRecognized){
-				cout << "NEW QR: \""<< label <<"\"" << endl;
+				cout << "\aNEW QR: \""<< label <<"\"" << endl;
 				this->processing();
 				return false;
 			}else{
-				cout << label << " NON in statica OR GIÀ in dinamica, in particolare: ";
+				cout << string(label) << " NON in statica OR GIÀ in dinamica, in particolare: ";
 				if(!isKnown)
 					cout << "NON in statica -> non può esistere" << endl;
 				if(isRecognized)
