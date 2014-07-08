@@ -2,7 +2,6 @@
 
 State::State(WorldKB* _worldKB)
 {
-	cout << "INIZIALIZZO STATO\n";
 	this->worldKB = _worldKB;
 }
 
@@ -22,7 +21,7 @@ void State::morgulservo_wrapper(float sleeptime)
 {
 	stringstream comando;
 	comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
-	cout << "sto chiamando : " << comando.str() << endl;
+	cout << "calling " << comando.str() << endl;
 	system(comando.str().c_str()); //magari si annullano le due sottochiamate
 	sleep(sleeptime);
 }
@@ -86,14 +85,14 @@ State* State2_QR::executeState()
 
 	bool stopWhile = false;
 	do {
-		if(turnSearching) {
-			cout << "is Searching turn." << endl;
+		//if(turnSearching) {
+		//	cout << "is Searching turn." << endl;
 			while(pthread_mutex_lock(&mutex)   != 0);
 				stopWhile = this->searching();															// CRITICAL REGION
 				//cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
-				turnSearching = false;																	// CRITICAL REGION
+		//		turnSearching = false;																	// CRITICAL REGION
 			while(pthread_mutex_unlock(&mutex) != 0);
-		}
+		//}
 		/* c'è una lieve ma presente SFASATURA tra chiamate a morgulservo e iterazioni di questo while. esaminare output per rendersene conto
 		 * più specificamente, il thread va molto più veloce e questo while non riesce a stargli dietro, di fatto il cout precedente non viene
 		 * stampato ad ogni step, ma ogni 6-8 steps.
@@ -142,21 +141,21 @@ bool State2_QR::preProcessing()
 	if(!count)
 		return false; // no QR codes found.
 	if(count > 1)
-		cout << "WARNING: FOUND >1 QR. CONSEGUENZE IMPREVEDIBILI SULL'ORDINAMENTO SPAZIALE" << endl;
+		cout << "WARNING: FOUND >1 QR. UNDEFINED BEHAVIOUR" << endl;
 	quirc_decode_error_t err;
 	// only recognize the first QR code found in the image
 	quirc_extract(this->qrStuff.q, 0, &(this->qrStuff.code));
-	err = quirc_decode(&(this->qrStuff.code),&(this->qrStuff.data));
+	err = quirc_decode(&(this->qrStuff.code), &(this->qrStuff.data));
 	if(!err) {
 		int len_payload = copyPayload();
 		char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
-		if(len_payload>min_payload &&  isCentered()){
+		if(len_payload>min_payload){
 			bool isKnown;
 			bool isRecognized;
 			isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
-			if(isKnown && !isRecognized){
-				cout << "Nuovo QR: \""<< label <<"\"" << endl;
+			if(isCentered() && isKnown && !isRecognized){
+				cout << "NEW QR: \""<< label <<"\"" << endl;
 				this->processing();
 				return false;
 			}else{
@@ -224,12 +223,12 @@ void State2_QR::calcPerspective_Distance(double side2, double side4)
 bool State2_QR::isCentered()
 {
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
-	printf("x_center %d\tframeCols %d\tcentering_tolerance %d\n", x_center, frameCols, this->getWorldKB()->getpCenterTolerance());
+	cout << "x_center =" << x_center << ", frameCols = " << frameCols << this->getWorldKB()->getpCenterTolerance();
 	if (abs( x_center - frameCols/2 ) < this->getWorldKB()->getpCenterTolerance() ){
-		printf("\nQR rilevato e centrato\n");
+		cout << ", Centered." << endl;
 		return true;
 	}else{
-		printf("\nQR rilevato ma non centrato\n");
+		cout << ", NOT centered." << endl;
 		return false;
 	}
 }
