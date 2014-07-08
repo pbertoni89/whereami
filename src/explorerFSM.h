@@ -100,7 +100,7 @@ private:
 					this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
 					stringstream comando;
 					comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
-					cout << "sto chiamando : " << comando.str() << endl;
+					cout << comando.str() << endl;
 					system(comando.str().c_str());
 					sleep(this->getWorldKB()->getpStepSleep());
 					turnSearching = true;										// CRITICAL REGION
