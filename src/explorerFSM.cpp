@@ -148,19 +148,22 @@ bool State2_QR::preProcessing()
 		char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
 		if(len_payload>min_payload){
-			bool isKnown;
+			bool isCentered = isCentered();
 			bool isRecognized;
-			isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
-			if(isCentered() && isKnown && !isRecognized){
+			bool isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
+			if(isCentered && isKnown && !isRecognized){
 				cout << "\aNEW QR: \""<< label <<"\"" << endl;
 				this->processing();
 				return false;
 			}else{
-				cout << string(label) << " NON in statica OR GIÀ in dinamica, in particolare: ";
+				cout << string(label) << " NON in statica OR GIÀ in dinamica OR non centrata, in particolare: ";
 				if(!isKnown)
-					cout << "NON in statica -> non può esistere" << endl;
+					cout << "NON in statica " ;
 				if(isRecognized)
-					cout << "IN dinamica -> è un QR già conosciuto" << endl;
+					cout << "IN dinamica ";
+				if(!isCentered)
+					cout << "NON centrata";
+				cout << endl;
 				return false;
 			}
 		}
