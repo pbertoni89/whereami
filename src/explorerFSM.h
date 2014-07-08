@@ -6,6 +6,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <thread>
+#include <signal.h>
 
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -70,6 +71,8 @@ private:
 	int qr_size_mm;
 	/** OpenCV matrices, acquired from calibration program output. */
 	Mat intrinsic_matrix, distortion_coeffs;
+	/** Mutex semaphore to synchronize */
+	pthread_mutex_t mutex;
 
 	void parseParameters(string filename);
 	int scaleQR(double side);
@@ -85,21 +88,23 @@ private:
 	/** Second of two top-view methods of State2. Return true iff QR is correctly pushed into worldKB */
 	bool processing();
 
-	bool incrementaCamera()
+	bool moveCamera()
 	{
 		//pat ha aggiunto questo IF poichè altrimenti nulla avrebbe fermato il thread!
 		if (this->getWorldKB()->isInRange()) {
-			this->getWorldKB()->incrementCameraAngle();
-			morgulservo_wrapper(this->getWorldKB()->getpStepSleep());
+			while(pthread_mutex_lock(&mutex)   != 0);
+				this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
+				morgulservo_wrapper(this->getWorldKB()->getpStepSleep());	// CRITICAL REGION
+			while(pthread_mutex_unlock(&mutex)   != 0);
 			return true;
 		}
 		return false;
 	}
 
-	static void* scorri(void* arg)
+	static void* moveCamera_wrapper(void* arg)
 	{
 		while(true)
-			if (! ((State2_QR*) arg)->incrementaCamera())
+			if (! ((State2_QR*) arg)->moveCamera())
 				break;
 		return 0;
 	}

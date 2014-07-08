@@ -48,6 +48,8 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
 	cout << "SONO LO STATO 2\n";
 
+	this->mutex = PTHREAD_MUTEX_INITIALIZER;
+
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
 	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
 	qrStuff.qr_info = *temp;
@@ -78,21 +80,26 @@ State2_QR::~State2_QR()
 
 State* State2_QR::executeState()
 {
-	pthread_t t;
-	pthread_create(&t, NULL, &State2_QR::scorri, this);
+	pthread_t moveCamera_thread;
+	pthread_create(&moveCamera_thread, NULL, &State2_QR::moveCamera_wrapper, this);
 
-	while (this->searching() == false && this->getWorldKB()->isInRange() == true)
-	{
-		cout << "dentro while, angle = " <<this->getWorldKB()->getCameraAngle() << endl;
+	bool stopWhile = false;
+	do {
+		while(pthread_mutex_lock(&mutex)   != 0);
+			stopWhile = this->searching();															// CRITICAL REGION
+			cout << "dentro while, angle = " <<this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
+		while(pthread_mutex_unlock(&mutex) != 0);
 		/* c'è una lieve ma presente SFASATURA tra chiamate a morgulservo e iterazioni di questo while. esaminare output per rendersene conto
 		 * più specificamente, il thread va molto più veloce e questo while non riesce a stargli dietro, di fatto il cout precedente non viene
 		 * stampato ad ogni step, ma ogni 6-8 steps.
 		 * QUESTO È MOLTO GRAVE, PERCHÈ SE PER CASO DOVESSIMO AVERE QUALCHE ISTRUZIONE IN QUESTO CICLO, QUESTA NON AVVERREBBE A OGNI STEP !
 		 */
-	}
+	} while (stopWhile == false && this->getWorldKB()->isInRange() == true);
+
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
 
+	pthread_kill(moveCamera_thread, SIGTERM);
 	//delete this;
 	return new State3_Checking(this->getWorldKB());
 }
@@ -357,6 +364,7 @@ State* State4_Localizing::executeState()
 	//Triangle tr = this->basicLocalization();
 	//this->triangles.push_back(tr);
 	this->testLocalization();
+	this->printAllRobotCoords();
 
 	//delete this;
 	return NULL;
@@ -402,7 +410,9 @@ void* ExplorerFSM::runFSM()
 		if(temp!=NULL)
 			setCurrentState(temp);
 		else {
-			printf("Whereami exiting successfully.\n");
+			cout << "Whereami exiting successfully." << endl;
+			cout << "Printing, as the last thing, the WORLDKB: " << endl;
+			this->worldKB.printKB();
 			break;
 		}
 	}

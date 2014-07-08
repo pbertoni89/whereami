@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#define ECLIPSE // keep this line IF whereami is launched WITHIN eclipse environment, i.e. eclipse workspace directory.
+//#define ECLIPSE // keep this line IF whereami is launched WITHIN eclipse environment, i.e. eclipse workspace directory.
 
 #ifdef ECLIPSE
 	#define PARAM_FILE "/home/patrizio/Desktop/progettoQR/whereami/parameters.txt"
