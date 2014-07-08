@@ -49,6 +49,7 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 	cout << "SONO LO STATO 2\n";
 
 	this->mutex = PTHREAD_MUTEX_INITIALIZER;
+	this->turnSearching = false;
 
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
 	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
@@ -85,10 +86,13 @@ State* State2_QR::executeState()
 
 	bool stopWhile = false;
 	do {
-		while(pthread_mutex_lock(&mutex)   != 0);
-			stopWhile = this->searching();															// CRITICAL REGION
-			cout << "dentro while, angle = " <<this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
-		while(pthread_mutex_unlock(&mutex) != 0);
+		if(turnSearching) {
+			while(pthread_mutex_lock(&mutex)   != 0);
+				stopWhile = this->searching();															// CRITICAL REGION
+				cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
+				turnSearching = false;
+			while(pthread_mutex_unlock(&mutex) != 0);
+		}
 		/* c'è una lieve ma presente SFASATURA tra chiamate a morgulservo e iterazioni di questo while. esaminare output per rendersene conto
 		 * più specificamente, il thread va molto più veloce e questo while non riesce a stargli dietro, di fatto il cout precedente non viene
 		 * stampato ad ogni step, ma ogni 6-8 steps.
@@ -99,7 +103,7 @@ State* State2_QR::executeState()
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
 
-	pthread_kill(moveCamera_thread, SIGTERM);
+						//pthread_kill(moveCamera_thread, SIGTERM);
 	//delete this;
 	return new State3_Checking(this->getWorldKB());
 }
@@ -155,11 +159,11 @@ bool State2_QR::preProcessing()
 				this->processing();
 				return false;
 			}else{
-				cout << label << " Non e' nella statica o e' già presente nella dinamica, in particolare: ";
+				cout << label << " NON in statica OR GIÀ in dinamica, in particolare: ";
 				if(!isKnown)
-					cout << "Non è nella statica quindi non può esistere";
+					cout << "NON in statica -> non può esistere" << endl;
 				if(isRecognized)
-					cout << "è nella dinamica quindi è un QR già conosiuto";
+					cout << "IN dinamica -> è un QR già conosciuto" << endl;
 				return false;
 			}
 		}
@@ -259,13 +263,19 @@ void State2_QR::resetQR()
 
 State3_Checking::State3_Checking(WorldKB* _worldKB) : State(_worldKB)
 {
-	cout << "SONO LO STATO 3\n";
+	//cout << "SONO LO STATO 3\n";
 }
 
 State3_Checking::~State3_Checking() { ; }
 
 State* State3_Checking::executeState()
 {
+	this->getWorldKB()->printKB();
+	if (this->getWorldKB()->get_qr_found() < 2) {
+		cout << "K contains {0|1} Landmarks and a triangulation CANNOT be performed. I'm sorry, I don't know where I am :(" << endl;
+		return new State5_Error(this->getWorldKB());
+	}
+	cout << "K contains {2,...} Landmarks and a triangulation CAN be performed" << endl;
   //delete this;
   return new State4_Localizing(this->getWorldKB());
 }
@@ -304,7 +314,7 @@ void Triangle::print()
 	this->lmA->print();
 	this->lmB->print();
 	cout << "angles: alpha = " << this->alpha_angle << ", beta = " << this->beta_angle << ", gamma = " << this->gamma_angle << ", phi = " << this->phi_angle << ", theta = " << this->theta_angle << endl;
-	cout << "WHERE AM I ? X = " << this->robot_coords.x << ", Y = " << this->robot_coords.y << endl;
+	cout << "Robot: X = " << this->robot_coords.x << ", Y = " << this->robot_coords.y << endl;
 	cout << "~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ " << endl;
 }
 
@@ -359,11 +369,11 @@ void State4_Localizing::printAllRobotCoords()
 
 State* State4_Localizing::executeState()
 {
-	cout << "   State5_Localizing: calling BASIC LOCALIZATION" << endl;
+	cout << "State5_Localizing: calling BASIC LOCALIZATION" << endl;
 
-	//Triangle tr = this->basicLocalization();
-	//this->triangles.push_back(tr);
-	this->testLocalization();
+	Triangle tr = this->basicLocalization();
+	this->triangles.push_back(tr);
+	//this->testLocalization();
 	this->printAllRobotCoords();
 
 	//delete this;
@@ -411,8 +421,6 @@ void* ExplorerFSM::runFSM()
 			setCurrentState(temp);
 		else {
 			cout << "Whereami exiting successfully." << endl;
-			cout << "Printing, as the last thing, the WORLDKB: " << endl;
-			this->worldKB.printKB();
 			break;
 		}
 	}

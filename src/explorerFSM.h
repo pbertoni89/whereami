@@ -65,14 +65,16 @@ private:
 	VideoCapture capture;
 	/** Temporary structure for QR processing. */
 	QRStuff qrStuff;
-	/** Scaling factor acquired from calibration program output. */
+	/** Scaling factor acquired from calibration program output.*/
 	int scale_factor;
-	/** Size (in millimetres) of the QR code pattern, acquired from calibration program output. */
+	/** Size (in millimetres) of the QR code pattern, acquired from calibration program output.*/
 	int qr_size_mm;
-	/** OpenCV matrices, acquired from calibration program output. */
+	/** OpenCV matrices, acquired from calibration program output.*/
 	Mat intrinsic_matrix, distortion_coeffs;
 	/** Mutex semaphore to synchronize */
 	pthread_mutex_t mutex;
+	/** Concurrent variable, protected by `mutex`. IFF true, searching can be called and moveCamera cannot; VICEVERSA IFF false.*/
+	bool turnSearching;
 
 	void parseParameters(string filename);
 	int scaleQR(double side);
@@ -92,10 +94,13 @@ private:
 	{
 		//pat ha aggiunto questo IF poichè altrimenti nulla avrebbe fermato il thread!
 		if (this->getWorldKB()->isInRange()) {
-			while(pthread_mutex_lock(&mutex)   != 0);
-				this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
-				morgulservo_wrapper(this->getWorldKB()->getpStepSleep());	// CRITICAL REGION
-			while(pthread_mutex_unlock(&mutex)   != 0);
+			if(!turnSearching) {
+				while(pthread_mutex_lock(&mutex)   != 0);
+					this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
+					morgulservo_wrapper(this->getWorldKB()->getpStepSleep());	// CRITICAL REGION
+					turnSearching = true;
+				while(pthread_mutex_unlock(&mutex)   != 0);
+			}
 			return true;
 		}
 		return false;

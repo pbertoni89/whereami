@@ -268,7 +268,7 @@ void WorldKB::printKB()
 
 bool WorldKB::isInRange()
 {
-	cout << "check in range: " << this->p_startAngle <<", " << this->cameraAngle <<", " << this->p_endAngle << endl;
+	//cout << "check in range: " << this->p_startAngle <<", " << this->cameraAngle <<", " << this->p_endAngle << endl;
 	return (this->p_startAngle <= this->cameraAngle && this->cameraAngle < this->p_endAngle);
 }
 
