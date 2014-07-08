@@ -98,7 +98,11 @@ private:
 				cout << "is moveCamera turn." << endl;
 				while(pthread_mutex_lock(&mutex)   != 0);
 					this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
-					morgulservo_wrapper(this->getWorldKB()->getpStepSleep());	// CRITICAL REGION
+					stringstream comando;
+					comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
+					cout << "sto chiamando : " << comando.str() << endl;
+					system(comando.str().c_str());
+					sleep(this->getWorldKB()->getpStepSleep());
 					turnSearching = true;										// CRITICAL REGION
 				while(pthread_mutex_unlock(&mutex)   != 0);
 			}
