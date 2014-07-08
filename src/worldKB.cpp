@@ -90,6 +90,7 @@ vector<Landmark> WorldKB::getKB()
 
 void WorldKB::pushQR(string _label, double _distance, double _delta_angle)
 {
+	cout << "Pushing QR \"" << _label << "\" as recognized !!!" << endl;
 	this->getLandmark(_label)->recognize(_distance, _delta_angle);
 }
 

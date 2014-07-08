@@ -89,7 +89,7 @@ State* State2_QR::executeState()
 		if(turnSearching) {
 			while(pthread_mutex_lock(&mutex)   != 0);
 				stopWhile = this->searching();															// CRITICAL REGION
-				cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
+				//cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
 				turnSearching = false;																	// CRITICAL REGION
 			while(pthread_mutex_unlock(&mutex) != 0);
 		}
