@@ -90,7 +90,7 @@ State* State2_QR::executeState()
 			while(pthread_mutex_lock(&mutex)   != 0);
 				stopWhile = this->searching();															// CRITICAL REGION
 				cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
-				turnSearching = false;
+				turnSearching = false;																	// CRITICAL REGION
 			while(pthread_mutex_unlock(&mutex) != 0);
 		}
 		/* c'è una lieve ma presente SFASATURA tra chiamate a morgulservo e iterazioni di questo while. esaminare output per rendersene conto
@@ -271,7 +271,7 @@ State3_Checking::~State3_Checking() { ; }
 State* State3_Checking::executeState()
 {
 	this->getWorldKB()->printKB();
-	if (this->getWorldKB()->get_qr_found() < 2) {
+	if (this->getWorldKB()->getRecognizedQRs() < 2) {
 		cout << "K contains {0|1} Landmarks and a triangulation CANNOT be performed. I'm sorry, I don't know where I am :(" << endl;
 		return new State5_Error(this->getWorldKB());
 	}

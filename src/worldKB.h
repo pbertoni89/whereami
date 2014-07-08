@@ -94,7 +94,7 @@ public:
 	/** Pushes a QRInfo just processed to the worldKB */
 	void pushQR(string _label, double _distance, double _acquired_angle);
 	/** Gets the actual number of QR found. Unique way to access this number. */
-	int get_qr_found();
+	int getRecognizedQRs();
 	/** Unique external way to know the camera angle of the robot. */
 	int getCameraAngle();
 	/** Unique external way to set the camera angle of the robot. */

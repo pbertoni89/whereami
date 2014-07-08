@@ -98,7 +98,7 @@ private:
 				while(pthread_mutex_lock(&mutex)   != 0);
 					this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
 					morgulservo_wrapper(this->getWorldKB()->getpStepSleep());	// CRITICAL REGION
-					turnSearching = true;
+					turnSearching = true;										// CRITICAL REGION
 				while(pthread_mutex_unlock(&mutex)   != 0);
 			}
 			return true;

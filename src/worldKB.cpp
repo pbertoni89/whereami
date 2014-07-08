@@ -71,9 +71,16 @@ WorldKB::WorldKB()
 	this->printKB();
 }
 
-int WorldKB::get_qr_found()
+int WorldKB::getRecognizedQRs()
 {
-	return this->kb.size();
+	int found = 0;
+	vector<Landmark>::iterator it = this->kb.begin();
+	while(it != this->kb.end()) {
+		if((*it).isRecognized())
+			found++;
+		it++;
+	}
+	return found;
 }
 
 vector<Landmark> WorldKB::getKB()
