@@ -18,6 +18,7 @@ using namespace cv;
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
 #define THRESH 13 	 // mysterious magic number.
 #define PI 3.14159265
+//#define TESTCORE
 
 /** Structure to easily handle QR data which is strictly related. */
 typedef struct QRStuff {
@@ -185,7 +186,7 @@ class State4_Localizing: public State
 	/** Set of triangles which can be built over landmarks. */
 	vector<Triangle> triangles;
 	/** Basic wrapper for triangulation algorithm. Simply uses the two first landmarks in KB to triangulate. */
-	Triangle basicLocalization();
+	Triangle basicLocalization(int n1, int n2);
 	/** Test wrapper for triangulation algorithm. */
 	void testLocalization();
 

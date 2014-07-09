@@ -311,9 +311,12 @@ void WorldKB::triangleTest()
 {
 	// exact angles does NOT care, since core algorithm just computes the difference between them
 	/** test 1 PASSED : R(x,y) = (2,1) 	| L(x,y,dist,angle) = (A, 1, 5, 4.12311, 0)   ; (B, 4, 4, 3.60555, 47.72631) */
-	this->getLandmark(0)->recognize(4.12311, 0);
-	this->getLandmark(1)->recognize(3.60555, 47.72631);
+		//this->getLandmark(0)->recognize(4.12311, 0);
+		//this->getLandmark(1)->recognize(3.60555, 47.72631);
 	/** test 2 PASSED : R(x,y) = (4,2) 	| L(x,y,dist,angle) = (C, 3, 3, 1.41421, -45) ;	(D, 5, 4, 2.23606, 26.56505) */
-	this->getLandmark(2)->recognize(1.41421, -45);
-	this->getLandmark(3)->recognize(2.23606, 26.56505);
+		//this->getLandmark(2)->recognize(1.41421, -45);
+		//this->getLandmark(3)->recognize(2.23606, 26.56505);
+	/** test 3 WRONG : R(x,y) = (4,2) 	| L(x,y,dist,angle) = (C, 3, 3, 1.41421, -45) ;	(D, 5, 4, 2.23606, 26.56505) */
+	this->getLandmark(0)->recognize(1278, -83);
+	this->getLandmark(1)->recognize(1100, 11);
 }

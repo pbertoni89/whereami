@@ -71,13 +71,13 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
     capture >> framet;
     this->frameCols = framet.cols;
 
-    /*cout << "Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
+    cout << "Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
     if(capture.set(CV_CAP_PROP_FRAME_WIDTH, 1280))
     	cout << "camera correctly setted" << endl;
     else
     	cout << "ERRORS" << endl;
     capture.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
-    cout << "NOW Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;*/
+    cout << "NOW Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
 }
 
 State2_QR::~State2_QR()
@@ -358,12 +358,13 @@ State3_Checking::~State3_Checking() { ; }
 State* State3_Checking::executeState()
 {
 	this->getWorldKB()->printKB();
+#ifndef TESTCORE
 	if (this->getWorldKB()->getRecognizedQRs() < 2) {
 		cout << "K contains {0|1} Landmarks and a triangulation CANNOT be performed. I'm sorry, I don't know where I am :(" << endl;
 		return new State5_Error(this->getWorldKB());
 	}
 	cout << "K contains {2,...} Landmarks and a triangulation CAN be performed" << endl;
-  //delete this;
+#endif
   return new State4_Localizing(this->getWorldKB());
 }
 
@@ -413,15 +414,15 @@ void Triangle::printShort()
 }
 
 State4_Localizing::State4_Localizing(WorldKB* _worldKB) : State(_worldKB)
-{//cout << "   State4_Localizing state\n";
+{
 }
 
 State4_Localizing::~State4_Localizing() { ; }
 
-Triangle State4_Localizing::basicLocalization()
+Triangle State4_Localizing::basicLocalization(int n1, int n2)
 {
-	Landmark* lA = this->getWorldKB()->getLandmark(0);
-	Landmark* lB = this->getWorldKB()->getLandmark(1);
+	Landmark* lA = this->getWorldKB()->getLandmark(n1);
+	Landmark* lB = this->getWorldKB()->getLandmark(n2);
 	Triangle tr = Triangle(lA, lB);
 	tr.triangulation();
 	tr.print();
@@ -436,11 +437,11 @@ void State4_Localizing::testLocalization()
 	Triangle tr1 = Triangle(lA, lB);
 	tr1.triangulation();
 	tr1.print();
-	Landmark* lC = this->getWorldKB()->getLandmark(2);
+	/*Landmark* lC = this->getWorldKB()->getLandmark(2);
 	Landmark* lD = this->getWorldKB()->getLandmark(3);
 	Triangle tr2 = Triangle(lC, lD);
 	tr2.triangulation();
-	tr2.print();
+	tr2.print();*/
 }
 
 void State4_Localizing::printAllRobotCoords()
@@ -458,12 +459,13 @@ State* State4_Localizing::executeState()
 {
 	cout << "State5_Localizing: calling BASIC LOCALIZATION" << endl;
 
-	Triangle tr = this->basicLocalization();
+#ifdef TESTCORE
+	this->testLocalization();
+#else
+	Triangle tr = this->basicLocalization(0, 1);
 	this->triangles.push_back(tr);
-	//this->testLocalization();
 	this->printAllRobotCoords();
-
-	//delete this;
+#endif
 	return NULL;
 }
 
