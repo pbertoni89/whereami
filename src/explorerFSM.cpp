@@ -78,6 +78,23 @@ State2_QR::~State2_QR()
 	free(&(qrStuff.qr_info));
 }
 
+bool State2_QR::isFine()
+{
+	return(this->mode==FINE);
+}
+void State2_QR::setRough()
+{
+	this->mode = ROUGH;
+}
+void State2_QR::setFine()
+{
+	this->mode = FINE;
+}
+bool State2_QR::isRough()
+{
+	return(this->mode==ROUGH);
+}
+
 State* State2_QR::executeState()
 {
 	pthread_t moveCamera_thread;
@@ -86,7 +103,7 @@ State* State2_QR::executeState()
 	bool stopWhile = false;
 	do {
 		if(turnSearching) {
-			cout << "is Searching turn." << endl;
+			//cout << "is Searching turn." << endl;
 			while(pthread_mutex_lock(&mutex)   != 0);
 			for(int i=0; i<this->getWorldKB()->getpNtry(this->mode); i++) {
 				if(!stopWhile) //otherwise, we're fine !
@@ -113,7 +130,7 @@ bool State2_QR::searching(bool snapshot)
 	if(!this->qrStuff.q)
 		{ perror("Can't create quirc object"); exit(1); }
 
-	Mat frame0, frame, frame_undistort, frame_BW;
+	Mat frame0, frame, frame_undistort, frame_GRAY, frame_BW;
 	if( !this->capture.isOpened() )
 		{ perror("Error opening capture.\n"); exit(1); }
 
@@ -124,8 +141,9 @@ bool State2_QR::searching(bool snapshot)
 		{ perror("Error loading the frame.\n"); exit(1); }
 
 	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
-	cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
-	cv_to_quirc(this->qrStuff.q, frame_BW);
+	cvtColor(frame_undistort, frame_GRAY, CV_BGR2GRAY);
+	threshold(frame_GRAY, frame_BW, BWTHRESH, 255, 0);
+	cv_to_quirc(this->qrStuff.q, frame_GRAY);
 
 	if (preProcessing())
 		return true;
@@ -156,16 +174,20 @@ bool State2_QR::preProcessing()
 		copyCorners();
 
 		bool hasReadablePayload = (len_payload>min_payload);
-		bool isCenteredr = isCentered();
+		bool isCenteredr = isQrCentered();
 		bool isRecognized;
 		bool isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
 
 		if(hasReadablePayload && isCenteredr && isKnown && !isRecognized){
-			cout << "\aNEW QR: \""<< label <<"\"" << endl;
+			cout << endl << "\aNEW QR: \""<< label <<"\"" << endl;
+			if(isFine()) {
+				cout << "ripristino regolazione GROSSA" << endl;
+				setRough();
+			}
 			this->processing();
 			return true; // qua è sicuro ormai che entrerà in KB con push
 		}else{
-			cout << string(label) << " illeggibile OR NON in statica OR GIÀ in dinamica OR non centrata, in particolare: ";
+			cout << endl << string(label) << " NON sarà processato perchè: ";
 			if(!hasReadablePayload)
 				cout << "illeggibile ";
 			if(!isKnown)
@@ -174,7 +196,15 @@ bool State2_QR::preProcessing()
 				cout << "IN dinamica ";
 			if(!isCenteredr) {
 				cout << "NON centrata";
-				//if(isQrRX())
+				if(isQrRX() && !isFine()) {
+					// salva cache
+					cout << endl << " a DX; avvio regolazione FINE" << endl;
+					setFine();
+				}
+				if(isQrLX() && !isRough()) {
+					cout << endl << " a SX; avvio regolazione GROSSA" << endl;
+					setRough();
+				}
 			}
 			cout << endl;
 			return false;
@@ -246,7 +276,7 @@ void State2_QR::calcPerspective_Distance(double side2, double side4)
 	this->qrStuff.qr_info.perspective_rotation = getAngleLR(s_LR_dist_delta, this->qr_size_mm);
 }
 
-bool State2_QR::isCentered()
+bool State2_QR::isQrCentered()
 {
 	if (abs( this->calcDeltaCenter() ) < this->getWorldKB()->getpCenterTolerance() ){
 		cout << " Centered." << endl;
@@ -260,7 +290,7 @@ bool State2_QR::isCentered()
 int State2_QR::calcDeltaCenter()
 {
 	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
-	cout << "x_center =" << x_center << ", frameCols = " << frameCols;
+	//cout << "x_center =" << x_center << ", frameCols = " << frameCols;
 	return x_center - frameCols/2;
 }
 bool State2_QR::isQrRX()
@@ -272,7 +302,6 @@ bool State2_QR::isQrRX()
 bool State2_QR::isQrLX()
 {
 	return (!isQrRX());
-
 }
 
 int State2_QR::copyPayload()

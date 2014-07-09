@@ -31,8 +31,8 @@ using namespace std;
 	#define KB_FILE    "staticKB.txt"
 #endif
 
-#define ROUGH FALSE
-#define FINE TRUE
+#define ROUGH 0
+#define FINE 1
 
 // ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~
 

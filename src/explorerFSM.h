@@ -18,6 +18,7 @@ using namespace cv;
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
 #define THRESH 13 	 // mysterious magic number.
 #define PI 3.14159265
+#define BWTHRESH 150 // used to clip Black n White during frame capture.
 
 /** Structure to easily handle QR data which is strictly related. */
 typedef struct QRStuff {
@@ -78,13 +79,19 @@ private:
 	/** Takes values between ROUGH=0 and FINE=1 */
 	bool mode;
 
+	/** @return TRUE IFF mode==FINE. */
+	bool isFine();
+	void setRough();
+	void setFine();
+	bool isRough();
+
 	void parseParameters(string filename);
 	int scaleQR(double side);
 	void copyCorners();
 	void saveSnapshot(Mat frame);
 	/** Calculate perspective rotation and distance of the QR. ---------------------------------------*/
 	void calcPerspective_Distance(double side_a, double side_b);
-	bool isCentered();
+	bool isQrCentered();
 	/** @return difference between qr center AND frame center. */
 	int calcDeltaCenter();
 	/** @return TRUE IFF qr center is RIGHTmost respect to frame center. */
@@ -108,7 +115,7 @@ private:
 	{
 		if (this->getWorldKB()->isInRange()) {
 			if(!turnSearching) {
-				cout << "is moveCamera turn." << endl;
+				//cout << "is moveCamera turn." << endl;
 				while(pthread_mutex_lock(&mutex)   != 0);
 					this->getWorldKB()->incrementCameraAngle(getWorldKB()->getpStepAngle(mode));	// CRITICAL REGION
 					stringstream comando;
