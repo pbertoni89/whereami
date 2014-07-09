@@ -226,6 +226,8 @@ void WorldKB::parseParameters(string filename)
 				this->p_startSleep = atof(val); break;
 			case 6:
 				this->p_centerTolerance = atoi(val); break;
+			case 7:
+				this->p_Ntry = atoi(val); break;
 			default:
 				cout << "Some error occured while parsing parameters." << endl;
 		}
@@ -261,6 +263,10 @@ int WorldKB::getpEndAngle()
 int WorldKB::getpCenterTolerance()
 {
 	return this->p_centerTolerance;
+}
+int WorldKB::getpNtry()
+{
+	return this->p_Ntry;
 }
 
 void WorldKB::printKB()

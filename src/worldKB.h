@@ -78,8 +78,11 @@ private:
 	/** maximum abs diff between QR center and vertical center of the frame. */
 	/** because initial movement may be very disrupting (at max 180 deg!) */
 	/** because step movement should be very little (usually 1-2 deg) */
-	int p_cameraID, p_centerTolerance, p_startAngle, p_stepAngle, p_endAngle;
-	float p_startSleep, p_stepSleep;
+	int p_cameraID, p_centerTolerance, p_startAngle, p_endAngle;
+	int p_stepAngle_rough, p_stepAngle_fine;
+	int p_Ntry_rough, p_Ntry_fine;
+	float p_stepSleep_rough, p_stepSleep_fine;
+	float p_startSleep;
 	/** RELATIVE rotation of the robot camera with respect to INITIAL angle.
 	 * E.g., if camera starts from -90deg, and has turned right till 0deg, cameraAngle will be 90deg.*/
 	int cameraAngle;
@@ -116,11 +119,12 @@ public:
 	/** Parameters getters. */
 	int getpCameraID();
 	int getpStartAngle();
-	int getpStepAngle();
 	int getpEndAngle();
 	float getpStartSleep();
-	float getpStepSleep();
 	int getpCenterTolerance();
+	int getpStepAngle(bool mode);
+	int getpNtry(bool mode);
+	float getpStepSleep(bool mode);
 	/** Return TRUE IFF startAngle <= cameraAngle <= endAngle */
 	bool isInRange();
 	/** Fills the `distance` and `delta_angle` fields of the first two landmarks. */

@@ -18,7 +18,8 @@ using namespace cv;
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
 #define THRESH 13 	 // mysterious magic number.
 #define PI 3.14159265
-#define NTRY 5
+#define ROUGH 0
+#define FINE 1
 
 /** Structure to easily handle QR data which is strictly related. */
 typedef struct QRStuff {
@@ -76,20 +77,34 @@ private:
 	pthread_mutex_t mutex;
 	/** Concurrent variable, protected by `mutex`. IFF true, searching can be called and moveCamera cannot; VICEVERSA IFF false.*/
 	bool turnSearching;
+	/** Takes values between ROUGH=0 and FINE=1 */
+	bool mode;
 
 	void parseParameters(string filename);
 	int scaleQR(double side);
 	void copyCorners();
+	void saveSnapshot(Mat frame);
+	/** Calculate perspective rotation and distance of the QR. ---------------------------------------*/
 	void calcPerspective_Distance(double side_a, double side_b);
 	bool isCentered();
+	/** @return difference between qr center AND frame center. */
+	int calcDeltaCenter();
+	/** @return TRUE IFF qr center is RIGHTmost respect to frame center. */
+	bool isQrRX();
+	/** @return TRUE IFF qr center is LEFTmost respect to frame center. */
+	bool isQrLX();
+	/** Copies payload from data to info structure. --------------------------------------------------*/
 	int copyPayload();
 	void resetQR();
-	/** First of two top-view methods of State2. Return a QRInfo iff a QR is found; else returns NULL*/
-	bool searching();
-	/** Internal method used by searching. ENSURES THAT 1) QR is in KB facts 2) QR is centered enough */
+	/** First of two top-view methods of State2.
+	 * @param `snapshot` lets frame capture available for further analysis.
+	 * @return a QRInfo iff a QR is found; else returns NULL*/
+	bool searching(bool snapshot);
+	/** Internal method used by searching. ENSURES THAT 1) QR is in KB facts 2) QR is centered enough
+	 *   @return TRUE IFF the preprocessed qr will be pushed in KB; i.e. isCentered && isKnown && !isRecognized */
 	bool preProcessing();
-	/** Second of two top-view methods of State2. Return true iff QR is correctly pushed into worldKB */
-	bool processing();
+	/** Second of two top-view methods of State2. */
+	void processing();
 
 	bool moveCamera()
 	{
@@ -101,7 +116,7 @@ private:
 					stringstream comando;
 					comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
 					cout << comando.str() << endl;
-					system(comando.str().c_str());
+					int ret = system(comando.str().c_str());
 					sleep(this->getWorldKB()->getpStepSleep());
 					turnSearching = true;										// CRITICAL REGION
 				while(pthread_mutex_unlock(&mutex)   != 0);

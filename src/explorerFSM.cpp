@@ -31,6 +31,7 @@ State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB)
 {
 	this->getWorldKB()->setCameraAngle(this->getWorldKB()->getpStartAngle());
 	this->morgulservo_wrapper(this->getWorldKB()->getpStartSleep());
+	system("cd ./img && rm -f * && cd ..");// removes all the snapshots
 }
 
 State1_Init::~State1_Init() { ; }
@@ -86,16 +87,16 @@ State* State2_QR::executeState()
 		if(turnSearching) {
 			cout << "is Searching turn." << endl;
 			while(pthread_mutex_lock(&mutex)   != 0);
-			for(int i=0; i<NTRY; i++) {
+			for(int i=0; i<this->getWorldKB()->getpNtry(); i++) {
 				if(!stopWhile) //otherwise, we're fine !
 					cout << "trial number " << i << endl;
-					stopWhile = this->searching();															// CRITICAL REGION
+					/*stopWhile = */this->searching((i==(this->getWorldKB()->getpNtry()-1)));															// CRITICAL REGION
 			}
 				//cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
 				turnSearching = false;																	// CRITICAL REGION
 			while(pthread_mutex_unlock(&mutex) != 0);
 		}
-	} while (stopWhile == false && this->getWorldKB()->isInRange() == true);
+	} while (/*stopWhile == false &&*/ this->getWorldKB()->isInRange() == true);
 
 	if(this->qrStuff.q)
 		quirc_destroy(this->qrStuff.q);
@@ -105,7 +106,7 @@ State* State2_QR::executeState()
 	return new State3_Checking(this->getWorldKB());
 }
 
-bool State2_QR::searching()
+bool State2_QR::searching(bool snapshot)
 {
 	this->qrStuff.q = quirc_new();
 	if(!this->qrStuff.q)
@@ -124,8 +125,13 @@ bool State2_QR::searching()
 	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
 	cvtColor(frame_undistort, frame_BW, CV_BGR2GRAY);
 	cv_to_quirc(this->qrStuff.q, frame_BW);
+
 	if (preProcessing())
 		return true;
+
+	if(snapshot)
+		this->saveSnapshot(frame_BW);
+
 	return false; //handle
 }
 
@@ -147,31 +153,36 @@ bool State2_QR::preProcessing()
 		int len_payload = copyPayload();
 		char* label = this->qrStuff.qr_info.qr_message;
 		copyCorners();
-		if(len_payload>min_payload){
-			bool isCenteredr = isCentered();
-			bool isRecognized;
-			bool isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
-			if(isCenteredr && isKnown && !isRecognized){
-				cout << "\aNEW QR: \""<< label <<"\"" << endl;
-				this->processing();
-				return false;
-			}else{
-				cout << string(label) << " NON in statica OR GIÀ in dinamica OR non centrata, in particolare: ";
-				if(!isKnown)
-					cout << "NON in statica " ;
-				if(isRecognized)
-					cout << "IN dinamica ";
-				if(!isCenteredr)
-					cout << "NON centrata";
-				cout << endl;
-				return false;
+
+		bool hasReadablePayload = (len_payload>min_payload);
+		bool isCenteredr = isCentered();
+		bool isRecognized;
+		bool isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
+
+		if(hasReadablePayload && isCenteredr && isKnown && !isRecognized){
+			cout << "\aNEW QR: \""<< label <<"\"" << endl;
+			this->processing();
+			return true; // qua è sicuro ormai che entrerà in KB con push
+		}else{
+			cout << string(label) << " illeggibile OR NON in statica OR GIÀ in dinamica OR non centrata, in particolare: ";
+			if(!hasReadablePayload)
+				cout << "illeggibile ";
+			if(!isKnown)
+				cout << "NON in statica ";
+			if(isRecognized)
+				cout << "IN dinamica ";
+			if(!isCenteredr) {
+				cout << "NON centrata";
+				//if(isQrRX())
 			}
+			cout << endl;
+			return false;
 		}
 	}
 	return false;
 }
 
-bool State2_QR::processing()
+void State2_QR::processing()
 {
 	double side2 = pitagora((double) (this->qrStuff.qr_info.x1 - this->qrStuff.qr_info.x2), (double)(this->qrStuff.qr_info.y1 - this->qrStuff.qr_info.y2));
 	double side4 = pitagora((double) (this->qrStuff.qr_info.x3 - this->qrStuff.qr_info.x0), (double)(this->qrStuff.qr_info.y3 - this->qrStuff.qr_info.y0));
@@ -182,7 +193,22 @@ bool State2_QR::processing()
 	this->getWorldKB()->pushQR(string(this->qrStuff.qr_info.qr_message),
 								this->qrStuff.qr_info.distance,
 								(double)this->getWorldKB()->getCameraAngle());
-	return false;
+}
+
+void State2_QR::saveSnapshot(Mat frame)
+{
+    /*vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(9);*/
+    stringstream filename;
+    filename << "./img/angolo_" << this->getWorldKB()->getCameraAngle() << ".bmp";
+    try {
+        imwrite(filename.str(), frame/*, compression_params*/);
+    }
+    catch (runtime_error& ex) {
+        fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+        exit(1);
+    }
 }
 
 void State2_QR::copyCorners()
@@ -203,7 +229,6 @@ int State2_QR::scaleQR(double side)
 	return fact/side;
 }
 
-/** Calculate perspective rotation and distance of the QR. ---------------------------------------*/
 void State2_QR::calcPerspective_Distance(double side2, double side4)
 {
 	int qr_pixel_size = average(side2, side4);
@@ -222,18 +247,33 @@ void State2_QR::calcPerspective_Distance(double side2, double side4)
 
 bool State2_QR::isCentered()
 {
-	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
-	cout << "x_center =" << x_center << ", frameCols = " << frameCols;
-	if (abs( x_center - frameCols/2 ) < this->getWorldKB()->getpCenterTolerance() ){
-		cout << ", Centered." << endl;
+	if (abs( this->calcDeltaCenter() ) < this->getWorldKB()->getpCenterTolerance() ){
+		cout << " Centered." << endl;
 		return true;
 	}else{
-		cout << ", NOT centered." << endl;
+		cout << " NOT centered." << endl;
 		return false;
 	}
 }
 
-/** Copies payload from data to info structure. --------------------------------------------------*/
+int State2_QR::calcDeltaCenter()
+{
+	int x_center = average(qrStuff.qr_info.x0, qrStuff.qr_info.x2);
+	cout << "x_center =" << x_center << ", frameCols = " << frameCols;
+	return x_center - frameCols/2;
+}
+bool State2_QR::isQrRX()
+{
+	if ( this->calcDeltaCenter() > 0 )
+		return true;
+	return false;
+}
+bool State2_QR::isQrLX()
+{
+	return (!isQrRX());
+
+}
+
 int State2_QR::copyPayload()
 {
 	this->qrStuff.qr_info.message_length = MAXLENGTH;
