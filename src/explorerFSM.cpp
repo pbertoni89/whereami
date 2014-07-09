@@ -71,13 +71,13 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
     capture >> framet;
     this->frameCols = framet.cols;
 
-    cout << "Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
+    /*cout << "Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
     if(capture.set(CV_CAP_PROP_FRAME_WIDTH, 1280))
     	cout << "camera correctly setted" << endl;
     else
     	cout << "ERRORS" << endl;
     capture.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
-    cout << "NOW Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
+    cout << "NOW Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;*/
 }
 
 State2_QR::~State2_QR()
