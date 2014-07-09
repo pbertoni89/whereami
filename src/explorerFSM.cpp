@@ -188,7 +188,7 @@ bool State2_QR::preProcessing()
 
 		if(hasReadablePayload && isCentered && isKnown && !isRecognized)
 		{
-			cout << endl << "\aNEW QR: \""<< label <<"\"" << endl;
+			cout << "\aNEW QR: \""<< label <<"\"" << endl;
 			if(isFine())
 			{
 				cout << "ripristino regolazione GROSSA" << endl;
@@ -199,7 +199,7 @@ bool State2_QR::preProcessing()
 		}
 		else
 		{
-			cout << endl << string(label) << " NON sarà processato perchè: ";
+			cout << string(label) << " NON sarà processato perchè: ";
 			if(!hasReadablePayload)
 				cout << "illeggibile ";
 			if(!isKnown)
@@ -298,13 +298,10 @@ void State2_QR::calcPerspective_Distance(double side2, double side4)
 
 bool State2_QR::isQrCentered()
 {
-	if (abs( this->calcDeltaCenter() ) < this->getWorldKB()->getpCenterTolerance() ){
-		cout << " Centered." << endl;
+	if (abs( this->calcDeltaCenter() ) < this->getWorldKB()->getpCenterTolerance() )
 		return true;
-	}else{
-		cout << " NOT centered." << endl;
+	else
 		return false;
-	}
 }
 
 int State2_QR::calcDeltaCenter()
@@ -317,7 +314,8 @@ bool State2_QR::isQrRX()
 {
 	if ( this->calcDeltaCenter() > 0 )
 		return true;
-	return false;
+	else
+		return false;
 }
 bool State2_QR::isQrLX()
 {

@@ -119,7 +119,7 @@ private:
 				while(pthread_mutex_lock(&mutex)   != 0);
 					this->getWorldKB()->incrementCameraAngle(getWorldKB()->getpStepAngle(mode));	// CRITICAL REGION
 					stringstream comando;
-					comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
+					comando << endl << endl << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
 					cout << comando.str() << endl;
 					int ret = system(comando.str().c_str());
 					sleep(this->getWorldKB()->getpStepSleep(this->mode));
