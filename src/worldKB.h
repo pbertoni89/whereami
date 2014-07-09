@@ -31,6 +31,9 @@ using namespace std;
 	#define KB_FILE    "staticKB.txt"
 #endif
 
+#define ROUGH FALSE
+#define FINE TRUE
+
 // ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~ ~~~~~~~~
 
 typedef struct Point2D {
@@ -102,8 +105,8 @@ public:
 	int getCameraAngle();
 	/** Unique external way to set the camera angle of the robot. */
 	void setCameraAngle(int _camera_angle);
-	/** Unique external way to increment buy a fixed quantity the camera angle of the robot. */
-	void incrementCameraAngle();
+	/** Unique external way to increment buy a `angle` quantity the camera angle of the robot. */
+	void incrementCameraAngle(int angle);
 	/** Checks whether QR `label` is known in the QR table. Boolean pointer serves as a second output for the question `has QR yet been recognized?` */
 	bool isQRInKB(string label, bool* isRecognized);
 	/** Prints out static KB facts. If QR are recognized, additional informations will be printed out. */

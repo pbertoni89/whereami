@@ -48,6 +48,7 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 {
 	this->mutex = PTHREAD_MUTEX_INITIALIZER;
 	this->turnSearching = false;
+	this->mode = ROUGH;
 
 	qrStuff.q = (quirc*)malloc(sizeof(quirc));
 	QRInfos* temp = (QRInfos*)malloc(sizeof(QRInfos));
@@ -87,10 +88,10 @@ State* State2_QR::executeState()
 		if(turnSearching) {
 			cout << "is Searching turn." << endl;
 			while(pthread_mutex_lock(&mutex)   != 0);
-			for(int i=0; i<this->getWorldKB()->getpNtry(); i++) {
+			for(int i=0; i<this->getWorldKB()->getpNtry(this->mode); i++) {
 				if(!stopWhile) //otherwise, we're fine !
 					cout << "trial number " << i << endl;
-					/*stopWhile = */this->searching((i==(this->getWorldKB()->getpNtry()-1)));															// CRITICAL REGION
+					/*stopWhile = */this->searching((i==(this->getWorldKB()->getpNtry(this->mode)-1)));															// CRITICAL REGION
 			}
 				//cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
 				turnSearching = false;																	// CRITICAL REGION

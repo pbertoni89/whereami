@@ -102,8 +102,8 @@ void WorldKB::setCameraAngle(int _camera_angle) {
 	this->cameraAngle = _camera_angle;
 }
 
-void WorldKB::incrementCameraAngle()  {
-	this->setCameraAngle(this->getCameraAngle() + this->p_stepAngle);
+void WorldKB::incrementCameraAngle(int angle)  {
+	this->setCameraAngle(this->getCameraAngle() + angle);
 }
 
 bool WorldKB::isQRInKB(string label, bool* isRecognized) {
@@ -217,17 +217,23 @@ void WorldKB::parseParameters(string filename)
 			case 1:
 				this->p_startAngle = atoi(val); break;
 			case 2:
-				this->p_stepAngle = atoi(val); break;
+				this->p_stepAngle_rough = atoi(val); break;
 			case 3:
 				this->p_endAngle = atoi(val); break;
 			case 4:
-				this->p_stepSleep = atof(val); break;
+				this->p_stepSleep_rough = atof(val); break;
 			case 5:
 				this->p_startSleep = atof(val); break;
 			case 6:
 				this->p_centerTolerance = atoi(val); break;
 			case 7:
-				this->p_Ntry = atoi(val); break;
+				this->p_Ntry_rough = atoi(val); break;
+			case 8:
+				this->p_stepAngle_fine = atoi(val); break;
+			case 9:
+				this->p_stepSleep_fine = atof(val); break;
+			case 10:
+				this->p_Ntry_fine = atoi(val); break;
 			default:
 				cout << "Some error occured while parsing parameters." << endl;
 		}
@@ -244,17 +250,23 @@ float WorldKB::getpStartSleep()
 {
 	return this->p_startSleep;
 }
-float WorldKB::getpStepSleep()
+float WorldKB::getpStepSleep(bool mode)
 {
-	return this->p_stepSleep;
+	if(mode==ROUGH)
+		return this->p_stepSleep_rough;
+	else
+		return this->p_stepSleep_fine;
 }
 int WorldKB::getpStartAngle()
 {
 	return this->p_startAngle;
 }
-int WorldKB::getpStepAngle()
+int WorldKB::getpStepAngle(bool mode)
 {
-	return this->p_stepAngle;
+	if(mode==ROUGH)
+		return this->p_stepAngle_rough;
+	else
+		return this->p_stepAngle_fine;
 }
 int WorldKB::getpEndAngle()
 {
@@ -264,9 +276,12 @@ int WorldKB::getpCenterTolerance()
 {
 	return this->p_centerTolerance;
 }
-int WorldKB::getpNtry()
+int WorldKB::getpNtry(bool mode)
 {
-	return this->p_Ntry;
+	if(mode==ROUGH)
+		return this->p_Ntry_rough;
+	else
+		return this->p_Ntry_fine;
 }
 
 void WorldKB::printKB()

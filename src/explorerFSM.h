@@ -18,8 +18,6 @@ using namespace cv;
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
 #define THRESH 13 	 // mysterious magic number.
 #define PI 3.14159265
-#define ROUGH 0
-#define FINE 1
 
 /** Structure to easily handle QR data which is strictly related. */
 typedef struct QRStuff {
@@ -112,12 +110,12 @@ private:
 			if(!turnSearching) {
 				cout << "is moveCamera turn." << endl;
 				while(pthread_mutex_lock(&mutex)   != 0);
-					this->getWorldKB()->incrementCameraAngle();					// CRITICAL REGION
+					this->getWorldKB()->incrementCameraAngle(getWorldKB()->getpStepAngle(mode));	// CRITICAL REGION
 					stringstream comando;
 					comando << "morgulservo -- " << this->getWorldKB()->getCameraAngle();
 					cout << comando.str() << endl;
 					int ret = system(comando.str().c_str());
-					sleep(this->getWorldKB()->getpStepSleep());
+					sleep(this->getWorldKB()->getpStepSleep(this->mode));
 					turnSearching = true;										// CRITICAL REGION
 				while(pthread_mutex_unlock(&mutex)   != 0);
 			}
