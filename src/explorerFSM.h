@@ -18,7 +18,6 @@ using namespace cv;
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.
 #define THRESH 13 	 // mysterious magic number.
 #define PI 3.14159265
-#define BWTHRESH 150 // used to clip Black n White during frame capture.
 
 /** Structure to easily handle QR data which is strictly related. */
 typedef struct QRStuff {

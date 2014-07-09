@@ -234,6 +234,8 @@ void WorldKB::parseParameters(string filename)
 				this->p_stepSleep_fine = atof(val); break;
 			case 10:
 				this->p_Ntry_fine = atoi(val); break;
+			case 11:
+				this->p_bwTresh = atoi(val); break;
 			default:
 				cout << "Some error occured while parsing parameters." << endl;
 		}
@@ -245,6 +247,10 @@ void WorldKB::parseParameters(string filename)
 int WorldKB::getpCameraID()
 {
 	return this->p_cameraID;
+}
+int WorldKB::getpBwTresh()
+{
+	return this->p_bwTresh;
 }
 float WorldKB::getpStartSleep()
 {

@@ -81,7 +81,7 @@ private:
 	/** maximum abs diff between QR center and vertical center of the frame. */
 	/** because initial movement may be very disrupting (at max 180 deg!) */
 	/** because step movement should be very little (usually 1-2 deg) */
-	int p_cameraID, p_centerTolerance, p_startAngle, p_endAngle;
+	int p_cameraID, p_centerTolerance, p_bwTresh, p_startAngle, p_endAngle;
 	int p_stepAngle_rough, p_stepAngle_fine;
 	int p_Ntry_rough, p_Ntry_fine;
 	float p_stepSleep_rough, p_stepSleep_fine;
@@ -121,6 +121,7 @@ public:
 	Landmark* getLandmark(unsigned int pos);
 	/** Parameters getters. */
 	int getpCameraID();
+	int getpBwTresh();
 	int getpStartAngle();
 	int getpEndAngle();
 	float getpStartSleep();

@@ -150,7 +150,7 @@ bool State2_QR::searching(bool doSnapshots)
 
 	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
 	cvtColor(frame_undistort, frame_GRAY, CV_BGR2GRAY);
-	threshold(frame_GRAY, frame_BW, BWTHRESH, 255, 0);
+	threshold(frame_GRAY, frame_BW, getWorldKB()->getpBwTresh(), 255, 0);
 	cv_to_quirc(this->qrStuff.q, frame_GRAY);
 
 	if (preProcessing())
@@ -188,7 +188,7 @@ bool State2_QR::preProcessing()
 
 		if(hasReadablePayload && isCentered && isKnown && !isRecognized)
 		{
-			cout << "\aNEW QR: \""<< label <<"\"" << endl;
+			cout << "\a\a\a\a\a\a\a\a\a\aNEW QR: \""<< label <<"\"" << endl;
 			if(isFine())
 			{
 				cout << "ripristino regolazione GROSSA" << endl;
