@@ -174,19 +174,23 @@ bool State2_QR::preProcessing()
 		copyCorners();
 
 		bool hasReadablePayload = (len_payload>min_payload);
-		bool isCenteredr = isQrCentered();
+		bool isCentered = isQrCentered();
 		bool isRecognized;
 		bool isKnown = this->getWorldKB()->isQRInKB(label, &isRecognized);
 
-		if(hasReadablePayload && isCenteredr && isKnown && !isRecognized){
+		if(hasReadablePayload && isCentered && isKnown && !isRecognized)
+		{
 			cout << endl << "\aNEW QR: \""<< label <<"\"" << endl;
-			if(isFine()) {
+			if(isFine())
+			{
 				cout << "ripristino regolazione GROSSA" << endl;
 				setRough();
 			}
 			this->processing();
 			return true; // qua è sicuro ormai che entrerà in KB con push
-		}else{
+		}
+		else
+		{
 			cout << endl << string(label) << " NON sarà processato perchè: ";
 			if(!hasReadablePayload)
 				cout << "illeggibile ";
@@ -194,16 +198,22 @@ bool State2_QR::preProcessing()
 				cout << "NON in statica ";
 			if(isRecognized)
 				cout << "IN dinamica ";
-			if(!isCenteredr) {
+			if(!isCentered)
+			{
 				cout << "NON centrata";
-				if(isQrRX() && !isFine()) {
-					// salva cache
-					cout << endl << " a DX; avvio regolazione FINE" << endl;
-					setFine();
-				}
-				if(isQrLX() && !isRough()) {
-					cout << endl << " a SX; avvio regolazione GROSSA" << endl;
-					setRough();
+				if(isKnown && !isRecognized)
+				{
+					if(isQrRX() && !isFine())
+					{
+						// salva cache
+						cout << endl << " a DX; avvio regolazione FINE" << endl;
+						setFine();
+					}
+					if(isQrLX() && !isRough())
+					{
+						cout << endl << " a SX; avvio regolazione GROSSA" << endl;
+						setRough();
+					}
 				}
 			}
 			cout << endl;
