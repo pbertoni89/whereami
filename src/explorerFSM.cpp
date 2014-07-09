@@ -241,8 +241,9 @@ void State2_QR::saveSnapshot(Mat frame)
     /*vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
     compression_params.push_back(9);*/
-    stringstream filename;
-    filename << "./img/angolo_" << this->getWorldKB()->getCameraAngle() << ".bmp";
+    static int i = 1;
+	stringstream filename;
+    filename << "./img/frame_" << i << "_angolo_" << this->getWorldKB()->getCameraAngle() << ".bmp";
     try {
         imwrite(filename.str(), frame/*, compression_params*/);
     }
@@ -250,6 +251,7 @@ void State2_QR::saveSnapshot(Mat frame)
         fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
         exit(1);
     }
+    i++;
 }
 
 void State2_QR::copyCorners()
