@@ -116,7 +116,7 @@ State* State2_QR::executeState()
 			for(int i=0; i<this->getWorldKB()->getpNtry(this->mode); i++) {
 				if(!stopWhile) //otherwise, we're fine !
 					cout << "trial number " << i << endl;
-					/*stopWhile = */this->searching((i==(this->getWorldKB()->getpNtry(this->mode)-1)));															// CRITICAL REGION
+					/*stopWhile = */this->searching((i==0/*(this->getWorldKB()->getpNtry(this->mode)-1)*/));															// CRITICAL REGION
 			}
 				//cout << "dentro while, angle = " << this->getWorldKB()->getCameraAngle() << endl;		// CRITICAL REGION
 				turnSearching = false;																	// CRITICAL REGION
@@ -132,7 +132,7 @@ State* State2_QR::executeState()
 	return new State3_Checking(this->getWorldKB());
 }
 
-bool State2_QR::searching(bool snapshot)
+bool State2_QR::searching(bool doSnapshots)
 {
 	this->qrStuff.q = quirc_new();
 	if(!this->qrStuff.q)
@@ -156,7 +156,7 @@ bool State2_QR::searching(bool snapshot)
 	if (preProcessing())
 		return true;
 
-	if(snapshot)
+	if(doSnapshots)
 		this->saveSnapshot(frame_BW);
 
 	return false; //handle

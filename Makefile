@@ -29,7 +29,7 @@ OPT= #aggiunto da pat per le unordered map -std=gnu++11 -std=c++0x
 #-O3
 VERS= -std=c++0x -pthread
 
-all: libquirc.so whereami calibration client
+all: libquirc.so whereami calibration
 
 whereami: src/util.o src/worldKB.o src/explorerFSM.o src/whereami.o libquirc.a
 	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`
@@ -37,9 +37,6 @@ whereami: src/util.o src/worldKB.o src/explorerFSM.o src/whereami.o libquirc.a
 
 calibration: src/util.o src/calibration.o  libquirc.a
 	g++ $(OPT) -o $@ $^ -lm `pkg-config --cflags --libs opencv`
-
-client: src/client.o
-	g++ $(OPT) -o $@ $^ -lm
 
 libquirc.a: $(LIB_OBJ)
 	rm -f $@
@@ -63,8 +60,3 @@ clean:
 	#rm -f libquirc.so
 	rm -f whereami
 	#rm -f calibration
-	#rm -f client
-
-cleanwhereami:
-	rm -f src/worldKB.o src/explorerFSM.o src/whereami.o
-	rm -f whereami
