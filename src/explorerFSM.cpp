@@ -372,11 +372,11 @@ State* State3_Checking::executeState()
 
 void Triangle::triangulation()
 {
-	this->gamma_angle = lmB->getDeltaAngle() - lmA->getDeltaAngle();
+	this->gamma_angle = abs(lmB->getDeltaAngle() - lmA->getDeltaAngle());
 	double AR = this->lmA->getDistance();
 	double RB = this->lmB->getDistance();
-	double dxAB = lmB->getX() - lmA->getX();
-	double dyAB = lmB->getY() - lmA->getY();
+	double dxAB = abs(lmB->getX() - lmA->getX());
+	double dyAB = abs(lmB->getY() - lmA->getY());
 	double AB = pitagora(dyAB, dxAB);					// radius of AB
 	this->theta_angle = radToDeg(atan2(dyAB, dxAB));	// phase  of AB
 	this->alpha_angle = radToDeg(asin( sin(degToRad(gamma_angle)) * (RB/AB)));
@@ -385,7 +385,7 @@ void Triangle::triangulation()
 	double dyAR = AR * cos(degToRad(phi_angle));
 	//cout << "temp: AB = " << AB << ", dxAB = " << dxAB << ", dyAB = " << dyAB << ", dxAR = " << dxAR << ", dyAR = " << dyAR << endl;
 	this->robot_coords.x = lmA->getX() + dxAR;
-	this->robot_coords.y = lmA->getY() - dyAR; // OCCHIO AL MENO
+	this->robot_coords.y = lmA->getY() + dyAR; // OCCHIO AL MENO
 }
 
 Triangle::Triangle(Landmark* _lA, Landmark* _lB)
