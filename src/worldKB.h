@@ -133,5 +133,6 @@ public:
 	bool isInRange();
 	/** Fills the `distance` and `delta_angle` fields of the first two landmarks. */
 	void triangleTest();
+	vector<int> getQRrecognized();
 };
 #endif

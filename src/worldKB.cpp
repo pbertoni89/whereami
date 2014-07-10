@@ -307,6 +307,19 @@ bool WorldKB::isInRange()
 	return (this->p_startAngle <= this->cameraAngle && this->cameraAngle < this->p_endAngle);
 }
 
+vector<int> WorldKB::getQRrecognized(){
+ vector<int> rec;
+ vector<Landmark>::iterator it = this->kb.begin();
+ int i=0;
+ while(it != this->kb.end()) {
+ if((*it).isRecognized())
+ rec.push_back(i);
+ it++;
+ i++;
+ }
+ return rec;
+}
+
 void WorldKB::triangleTest()
 {
 	// exact angles does NOT care, since core algorithm just computes the difference between them

@@ -467,14 +467,30 @@ void State4_Localizing::printAllRobotCoords()
 State* State4_Localizing::executeState()
 {
 	cout << "State4_Localizing: calling BASIC LOCALIZATION" << endl;
-
 #ifdef TESTCORE
-	this->testLocalization();
+ this->testLocalizatiogen();
+ this->testLocalization();
 #else
-	Triangle tr = this->basicLocalization(0, 1);
-	this->solutions.push_back(tr.get_robot_coords());
-	cout<<"SOLUTION PUSHED!!!!";
-	this->printAllRobotCoords();
+
+
+ Vector<int> recognized = this->getWorldKB()->getQRrecognized();
+ int size=recognized.size();
+Triangle tr = this->basicLocalization(0, 1);
+this->solutions.push_back(tr.get_robot_coords());
+ cout<<"SOLUTION PUSHED!!!!"<<endl;
+ if(size==3)
+ {
+ tr = this->basicLocalization(1, 2);
+ this->solutions.push_back(tr.get_robot_coords());
+ cout<<"SOLUTION PUSHED!!!!"<<endl;
+
+ tr = this->basicLocalization(0, 2);
+ this->solutions.push_back(tr.get_robot_coords());
+ cout<<"SOLUTION PUSHED!!!!"<<endl;
+
+ }
+ cout<<"SOLUTION PUSHED!!!!";
+this->printAllRobotCoords();
 #endif
 	return NULL;
 }
