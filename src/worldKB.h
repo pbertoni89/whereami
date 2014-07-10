@@ -119,8 +119,6 @@ public:
 	Landmark* getLandmark(string label);
 	/** If the (pos+1)-th QR is in KB, AND 0 <= pos < kb.size(), its relative Landmark will be returned. Else, NULL will be returned. */
 	Landmark* getLandmark(unsigned int pos);
-	/** Return the QR recognized during the scansion */
-	vector<int> getQRrecognized();
 	/** Parameters getters. */
 	int getpCameraID();
 	int getpBwTresh();
