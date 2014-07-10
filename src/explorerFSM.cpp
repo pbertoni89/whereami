@@ -132,7 +132,7 @@ State* State2_QR::executeState()
 	//delete this;
 	return new State3_Checking(this->getWorldKB());
 }
-
+//pthread_kill(moveCamera_thread, SIGTERM);
 bool State2_QR::searching(bool doSnapshots)
 {
 	this->qrStuff.q = quirc_new();
