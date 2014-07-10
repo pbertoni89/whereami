@@ -190,6 +190,11 @@ bool State2_QR::preProcessing()
 
 		if(hasReadablePayload && isCentered && isKnown && !isRecognized)
 		{
+			cout << "\a";
+			cout << "\a";
+			cout << "\a";
+			cout << "\a";
+			cout << "\a";
 			cout << "\a\a\a\a\a\a\a\a\a\aNEW QR: \""<< label <<"\"" << endl;
 			if(isFine())
 			{
