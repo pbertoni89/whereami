@@ -65,19 +65,20 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 	resetQR();
 	capture.open(this->getWorldKB()->getpCameraID());
 
+	
 	if (!capture.isOpened())
 		{ perror("Error during capture opening.\n"); exit(1); }
 	Mat framet;
     capture >> framet;
     this->frameCols = framet.cols;
 
-    cout << "Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
-    if(capture.set(CV_CAP_PROP_FRAME_WIDTH, 1280))
-    	cout << "camera correctly setted" << endl;
-    else
-    	cout << "ERRORS" << endl;
-    capture.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
-    cout << "NOW Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
+//    cout << "Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
+//    if(capture.set(CV_CAP_PROP_FRAME_WIDTH, 1280))
+//    	cout << "camera correctly setted" << endl;
+//    else
+//    	cout << "ERRORS" << endl;
+//    capture.set(CV_CAP_PROP_FRAME_HEIGHT, 1024);
+ //   cout << "NOW Camera resolution is " << capture.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << capture.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
 }
 
 State2_QR::~State2_QR()
@@ -150,7 +151,8 @@ bool State2_QR::searching(bool doSnapshots)
 
 	undistort(frame, frame_undistort, intrinsic_matrix, distortion_coeffs);
 	cvtColor(frame_undistort, frame_GRAY, CV_BGR2GRAY);
-	threshold(frame_GRAY, frame_BW, getWorldKB()->getpBwTresh(), 255, 0);
+	//threshold(frame_GRAY, frame_BW, getWorldKB()->getpBwTresh(), 255, 0);
+	threshold(frame_GRAY,frame_BW,80,255,THRESH_BINARY);
 	cv_to_quirc(this->qrStuff.q, frame_GRAY);
 
 	if (preProcessing())
