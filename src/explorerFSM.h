@@ -32,6 +32,7 @@ typedef struct QRStuff {
 	struct quirc_data data;
 } QRStuff;
 
+
 class State
 {
 private:
@@ -179,12 +180,14 @@ public:
 	void print();
 	/** One-line essential output. */
 	void printShort();
+	/** get robot coords */
+	Point2D get_robot_coords();
 };
 
 class State4_Localizing: public State
 {
 	/** Set of triangles which can be built over landmarks. */
-	vector<Triangle> triangles;
+	vector<Point2D> solutions;
 	/** Basic wrapper for triangulation algorithm. Simply uses the two first landmarks in KB to triangulate. */
 	Triangle basicLocalization(int n1, int n2);
 	/** Test wrapper for triangulation algorithm. */

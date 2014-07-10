@@ -1,5 +1,5 @@
 #include "explorerFSM.h"
-   
+
 State::State(WorldKB* _worldKB)
 {
 	this->worldKB = _worldKB;
@@ -132,7 +132,7 @@ State* State2_QR::executeState()
 	//delete this;
 	return new State3_Checking(this->getWorldKB());
 }
-//pthread_kill(moveCamera_thread, SIGTERM);
+
 bool State2_QR::searching(bool doSnapshots)
 {
 	this->qrStuff.q = quirc_new();
@@ -408,8 +408,13 @@ void Triangle::print()
 	cout << "~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ " << endl;
 }
 
+Point2D Triangle::get_robot_coords(){
+	return this->robot_coords;
+}
+
 void Triangle::printShort()
 {
+	cout << "Solution :";
 	cout << "Landmark A: "; this->lmA->getLabel();
 	cout << "\tLandmark B: "; this->lmB->getLabel();
 	cout << "\tRobot: X = " << this->robot_coords.x << ", Y = " << this->robot_coords.y << endl;
@@ -448,10 +453,12 @@ void State4_Localizing::testLocalization()
 
 void State4_Localizing::printAllRobotCoords()
 {
-	cout << "WHERE AM I ? Printing all possible suggestions. " << endl;
-	vector<Triangle>::iterator it = this->triangles.begin();
-	while(it != this->triangles.end()) {
-		(*it).printShort();
+	cout << "WHERE AM I ? Printing all possible solutions. " << endl;
+	vector<Point2D>::iterator it = this->solutions.begin();
+	int i=1;
+	while(it != this->solutions.end()) {
+		cout<<i<<") "<<"X:"<<(*it).x<<" Y:"<<(*it).y;
+		i++;
 		it++;
 	}
 	cout << "~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ ~~~~~ " << endl;
@@ -459,13 +466,26 @@ void State4_Localizing::printAllRobotCoords()
 
 State* State4_Localizing::executeState()
 {
-	cout << "State5_Localizing: calling BASIC LOCALIZATION" << endl;
+	cout << "State4_Localizing: calling BASIC LOCALIZATION" << endl;
 
 #ifdef TESTCORE
-	this->testLocalization();
+	this->testLocalizatiogen();
 #else
+	/**
+	 * vector<Landmark>::iterator it = this->kb.begin();
+	while(it != this->kb.end()) {
+		tmp = string((*it).getLabel());
+		if(label.compare(tmp)==0) {
+			if((*it).isRecognized())
+				*isRecognized = true;
+			return true;
+		}
+		it++;
+	}
+	 */
 	Triangle tr = this->basicLocalization(0, 1);
-	this->triangles.push_back(tr);
+	this->solutions.push_back(tr.get_robot_coords());
+	cout<<"SOLUTION PUSHED!!!!"<<endl;
 	this->printAllRobotCoords();
 #endif
 	return NULL;
