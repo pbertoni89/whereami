@@ -13,6 +13,8 @@
 
 #include <math.h>
 
+#include <iterator>
+
 using namespace cv;
 
 #define DEBUG		 // it will help us. Comment for excluding preprocessing.

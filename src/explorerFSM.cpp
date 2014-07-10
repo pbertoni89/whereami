@@ -190,11 +190,6 @@ bool State2_QR::preProcessing()
 
 		if(hasReadablePayload && isCentered && isKnown && !isRecognized)
 		{
-			cout << "\a";
-			cout << "\a";
-			cout << "\a";
-			cout << "\a";
-			cout << "\a";
 			cout << "\a\a\a\a\a\a\a\a\a\aNEW QR: \""<< label <<"\"" << endl;
 			if(isFine())
 			{
@@ -476,21 +471,24 @@ State* State4_Localizing::executeState()
 #ifdef TESTCORE
 	this->testLocalizatiogen();
 #else
-	/**
-	 * vector<Landmark>::iterator it = this->kb.begin();
-	while(it != this->kb.end()) {
-		tmp = string((*it).getLabel());
-		if(label.compare(tmp)==0) {
-			if((*it).isRecognized())
-				*isRecognized = true;
-			return true;
-		}
-		it++;
-	}
-	 */
+
+
+	Vector<int> recognized = this->getWorldKB()->getQRrecognized();
+	int size=recognized.size();
 	Triangle tr = this->basicLocalization(0, 1);
 	this->solutions.push_back(tr.get_robot_coords());
 	cout<<"SOLUTION PUSHED!!!!"<<endl;
+	if(size==3)
+	{
+			tr = this->basicLocalization(1, 2);
+			this->solutions.push_back(tr.get_robot_coords());
+			cout<<"SOLUTION PUSHED!!!!"<<endl;
+
+			tr = this->basicLocalization(0, 2);
+			this->solutions.push_back(tr.get_robot_coords());
+			cout<<"SOLUTION PUSHED!!!!"<<endl;
+
+	}
 	this->printAllRobotCoords();
 #endif
 	return NULL;

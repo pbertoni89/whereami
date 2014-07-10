@@ -122,6 +122,19 @@ bool WorldKB::isQRInKB(string label, bool* isRecognized) {
 	return false;
 }
 
+vector<int> WorldKB::getQRrecognized(){
+	vector<int> rec;
+	vector<Landmark>::iterator it = this->kb.begin();
+	int i=0;
+		while(it != this->kb.end()) {
+				if((*it).isRecognized())
+					rec.push_back(i);
+				it++;
+				i++;
+		}
+		return rec;
+}
+
 Landmark* WorldKB::getLandmark(string label)
 {
 	string tmp;
