@@ -39,7 +39,8 @@ State1_Init::~State1_Init() { ; }
 State* State1_Init::executeState(void)
 {	
 	//delete this;
-	return new State2_QR(this->getWorldKB());
+	//return new State2_QR(this->getWorldKB());
+	return new State4_Localizing(this->getWorldKB());
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
@@ -374,20 +375,51 @@ State* State3_Checking::executeState()
 
 void Triangle::triangulation()
 {
+	int signY=1;
 	this->gamma_angle = abs(lmB->getDeltaAngle() - lmA->getDeltaAngle());
 	double AR = this->lmA->getDistance();
 	double RB = this->lmB->getDistance();
-	double dxAB = abs(lmB->getX() - lmA->getX());
-	double dyAB = abs(lmB->getY() - lmA->getY());
-	double AB = pitagora(dyAB, dxAB);					// radius of AB
-	this->theta_angle = radToDeg(atan2(dyAB, dxAB));	// phase  of AB
+	double dxBA = lmB->getX() - lmA->getX();
+	double dyBA = lmB->getY() - lmA->getY(); //YB-YA
+	double AB = pitagora(dyBA, dxBA);					// radius of AB
+	this->theta_angle = abs(radToDeg(atan2(dyBA, dxBA)));	// phase  of AB
+	cout<<"-----------------------------------------"<<endl<<"Calcolando la posizione utilizzando i landmark"<<endl;
+	cout<<"1)"<<lmA->getLabel()<<"("<<lmA->getX()<<","<<lmA->getY()<<")"<<endl;
+	cout<<"2)"<<lmB->getLabel()<<"("<<lmB->getX()<<","<<lmB->getY()<<")"<<endl<<endl;
+	//cout<<"dyBA e' "<<dyBA<<endl;
+	if(dyBA<0){
+		
+		//cout<<"B ha la y piu piccola, considerare theta positivo"<<endl;
+	}else{
+		theta_angle=-theta_angle;
+		//cout<<"B ha la y piu grande, considerare theta negativo"<<endl;
+		}
+	//cout<<theta_angle<<endl;
 	this->alpha_angle = radToDeg(asin( sin(degToRad(gamma_angle)) * (RB/AB)));
-	this->phi_angle = theta_angle - alpha_angle + HALFPIDEG;
-	double dxAR = AR * sin(degToRad(phi_angle));
-	double dyAR = AR * cos(degToRad(phi_angle));
-	//cout << "temp: AB = " << AB << ", dxAB = " << dxAB << ", dyAB = " << dyAB << ", dxAR = " << dxAR << ", dyAR = " << dyAR << endl;
+	this->phi_angle =90-alpha_angle+theta_angle;
+	//cout<<"Calcolo phi angle "<<"= 90-"<<alpha_angle<<"+"<<theta_angle<<"="<<phi_angle<<endl;
+	
+	double dxAR = AR * sin(degToRad(phi_angle)); //se PHI è positivo dx è NEGATIVO 
+	double dyAR = AR *cos(degToRad(phi_angle)); //se sempre positivo
+	//cout<<"-------------------LA X--------------"<<endl<<"Valuto phi angle "<<phi_angle<<endl;
+	if(phi_angle<0){
+		dxAR=dxAR;
+		//cout<<"phi angle negativo quindi l'x del QR è minore dell' x di A "<<lmA->getX()<<endl;
+		//cout<<"dxAR e' "<<dxAR<<endl;
+	}
+	//cout<<"-------------------LA y--------------"<<endl<<"Confrontando theta angle e alpha angle "<<theta_angle<< "e "<<alpha_angle<<endl;
+	if(theta_angle>alpha_angle){
+		dyAR=-dyAR;
+		//cout<<"Il robot ha la y più piccola di A"<<endl;
+		//cout<<"dyAR e' "<<dyAR<<endl;
+	}else{
+		//cout<<"Il robot ha la y più grande di A"<<endl;
+		//cout<<"dyAR e' "<<dyAR<<endl<<"--------------------------"<<endl;
+		}
+		
+	//cout << "temp: AB = " << AB << ", dxBA = " << dxBA << ", dyBA = " << dyBA << ", dxAR = " << dxAR << ", dyAR = " << dyAR << endl;
 	this->robot_coords.x = lmA->getX() + dxAR;
-	this->robot_coords.y = lmA->getY() + dyAR; // OCCHIO AL MENO
+	this->robot_coords.y = lmA->getY() + dyAR;
 }
 
 Triangle::Triangle(Landmark* _lA, Landmark* _lB)
@@ -468,10 +500,8 @@ State* State4_Localizing::executeState()
 {
 	cout << "State4_Localizing: calling BASIC LOCALIZATION" << endl;
 #ifdef TESTCORE
- this->testLocalizatiogen();
  this->testLocalization();
 #else
-
 
  Vector<int> recognized = this->getWorldKB()->getQRrecognized();
  int size=recognized.size();
