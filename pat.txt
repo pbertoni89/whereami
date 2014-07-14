@@ -1,5 +1,0 @@
-Landmark abcdefghijklmnop, Coords: x = 0, y = 1180, Recognized at distance = 1278, delta_angle = -83
-Landmark prova111, Coords: x = 1250, y = 0, Recognized at distance = 1100, delta_angle = 11
-
-angles: alpha = 39.6692, beta = 0, gamma = 94, phi = 6.98079, theta = -43.35
-Robot: X = 155.324, Y = -88.5261
