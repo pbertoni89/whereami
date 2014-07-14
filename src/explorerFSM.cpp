@@ -12,7 +12,7 @@ WorldKB* State::getWorldKB()
 	return this->worldKB;
 }
 
-void State::setWorldKB(WorldKB* kb) 
+void State::setWorldKB(WorldKB* kb)
 {
 	this->worldKB = kb;
 }
@@ -37,10 +37,9 @@ State1_Init::State1_Init(WorldKB* _worldKB) : State(_worldKB)
 State1_Init::~State1_Init() { ; }
 
 State* State1_Init::executeState(void)
-{	
+{
 	//delete this;
-	//return new State2_QR(this->getWorldKB());
-	return new State4_Localizing(this->getWorldKB());
+	return new State2_QR(this->getWorldKB());
 }
 
 // --------------------- ---------------- ---------------- ---------------- ---------------- ----------------
@@ -66,7 +65,6 @@ State2_QR::State2_QR(WorldKB* _worldKB) : State(_worldKB)
 	resetQR();
 	capture.open(this->getWorldKB()->getpCameraID());
 
-	
 	if (!capture.isOpened())
 		{ perror("Error during capture opening.\n"); exit(1); }
 	Mat framet;
